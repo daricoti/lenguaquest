@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lengua Quest · Plataforma Educativa 6.º Primaria</title>
+  <!-- Librerías externas para sincronización en vivo (MQTT) y generación de QR -->
   <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
@@ -46,6 +47,44 @@
       height: 100%;
       pointer-events: none;
       z-index: 999;
+    }
+
+    /* Custom In-App Modal & Toast (reemplaza alert/confirm/prompt para compatibilidad total) */
+    .ui-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.78);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1100;
+    }
+    .ui-modal-card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      padding: 22px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+    }
+    .ui-toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(96, 165, 250, 0.5);
+      padding: 11px 20px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+      z-index: 1200;
+      transition: opacity 0.2s;
     }
 
     /* Top Bar */
@@ -655,6 +694,20 @@
 <body>
   <canvas id="confetti-canvas"></canvas>
 
+  <!-- Custom Modal & Toast Container -->
+  <div id="ui-modal-backdrop" class="ui-modal-backdrop hidden">
+    <div class="ui-modal-card">
+      <h3 id="ui-modal-title" style="font-size:1.15rem; margin-bottom:8px;">Aviso</h3>
+      <p id="ui-modal-msg" style="color:var(--muted); font-size:0.94rem; margin-bottom:14px;"></p>
+      <input type="password" id="ui-modal-input" class="dark-input hidden" style="width:100%; margin-bottom:14px;" />
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button id="ui-modal-cancel" class="btn btn-ghost">Cancelar</button>
+        <button id="ui-modal-ok" class="btn btn-primary">Aceptar</button>
+      </div>
+    </div>
+  </div>
+  <div id="ui-toast" class="ui-toast hidden"></div>
+
   <!-- TOP BAR -->
   <header class="topbar">
     <div class="brand">
@@ -1174,7 +1227,61 @@
     </section>
 
   </main>
+
   <script>
+    /* ==================== CUSTOM NON-BLOCKING DIALOGS & TOASTS ==================== */
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('ui-toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+    }
+
+    function openCustomModal({ title, message, showInput = false, placeholder = '', confirmText = 'Aceptar', cancelText = 'Cancelar', showCancel = true }) {
+      return new Promise(resolve => {
+        const backdrop = document.getElementById('ui-modal-backdrop');
+        const titleEl = document.getElementById('ui-modal-title');
+        const msgEl = document.getElementById('ui-modal-msg');
+        const inputEl = document.getElementById('ui-modal-input');
+        const okBtn = document.getElementById('ui-modal-ok');
+        const cancelBtn = document.getElementById('ui-modal-cancel');
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+        okBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        cancelBtn.classList.toggle('hidden', !showCancel);
+
+        if (showInput) {
+          inputEl.value = '';
+          inputEl.placeholder = placeholder;
+          inputEl.classList.remove('hidden');
+        } else {
+          inputEl.classList.add('hidden');
+        }
+
+        backdrop.classList.remove('hidden');
+        if (showInput) setTimeout(() => inputEl.focus(), 40);
+
+        const cleanup = (result) => {
+          backdrop.classList.add('hidden');
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+          inputEl.onkeydown = null;
+          resolve(result);
+        };
+
+        okBtn.onclick = () => cleanup(showInput ? inputEl.value : true);
+        cancelBtn.onclick = () => cleanup(showInput ? null : false);
+        inputEl.onkeydown = (e) => {
+          if (e.key === 'Enter') cleanup(inputEl.value);
+          else if (e.key === 'Escape') cleanup(null);
+        };
+      });
+    }
+
     /* ==================== 0. WEB AUDIO SOUND SYNTHESIZER ==================== */
     const SoundEngine = (() => {
       let ctx = null;
@@ -1259,15 +1366,13 @@
           { label: '1. Extensión', options: ['Común', 'Propio'] },
           { label: '2. Naturaleza', options: ['Concreto', 'Abstracto', 'No procede'] },
           { label: '3. Contabilidad', options: ['Contable', 'No contable', 'No procede'] },
-          { label: '4. Cantidad (en singular)', options: ['Individual', 'Colectivo', 'No procede'] },
-          { label: '5. Género y Número', options: ['Masc. Sing.', 'Fem. Sing.', 'Masc. Plur.', 'Fem. Plur.'] }
+          { label: '4. Cantidad (en singular)', options: ['Individual', 'Colectivo', 'No procede'] }
         ],
         adaptedSchema: [
           { label: '1. Extensión', options: ['Común', 'Propio'] },
-          { label: '2. Naturaleza', options: ['Concreto', 'Abstracto', 'No procede'] },
-          { label: '3. Género y Número', options: ['Masc. Sing.', 'Fem. Sing.', 'Masc. Plur.', 'Fem. Plur.'] }
+          { label: '2. Naturaleza', options: ['Concreto', 'Abstracto', 'No procede'] }
         ],
-        mapAdaptedSolution: (cats) => [cats[0], cats[1], cats[4]]
+        mapAdaptedSolution: (cats) => [cats[0], cats[1]]
       },
       adjetivos: {
         label: '📙 Adjetivos',
@@ -1276,23 +1381,16 @@
             label: '1. Grado del adjetivo',
             grid2x3: true,
             options: ['Positivo', 'Comp. Superioridad', 'Comp. Igualdad', 'Comp. Inferioridad', 'Superlativo Absoluto', 'Superlativo Relativo']
-          },
-          { label: '2. Terminación', options: ['1 terminación', '2 terminaciones'] },
-          { label: '3. Significado', options: ['Especificativo', 'Explicativo'] },
-          { label: '4. Género', options: ['Masculino', 'Femenino', 'Invariable'] },
-          { label: '5. Número', options: ['Singular', 'Plural', 'Invariable'] }
+          }
         ],
         adaptedSchema: [
-          { label: '1. Grado básico', options: ['Positivo', 'Comparativo', 'Superlativo'] },
-          { label: '2. Género', options: ['Masculino', 'Femenino', 'Invariable'] },
-          { label: '3. Número', options: ['Singular', 'Plural', 'Invariable'] }
+          {
+            label: '1. Grado del adjetivo',
+            grid2x3: true,
+            options: ['Positivo', 'Comp. Superioridad', 'Comp. Igualdad', 'Comp. Inferioridad', 'Superlativo Absoluto', 'Superlativo Relativo']
+          }
         ],
-        mapAdaptedSolution: (cats) => {
-          let g = 'Positivo';
-          if (cats[0].startsWith('Comp.')) g = 'Comparativo';
-          else if (cats[0].startsWith('Superlativo')) g = 'Superlativo';
-          return [g, cats[3], cats[4]];
-        }
+        mapAdaptedSolution: (cats) => [cats[0]]
       },
       verbos: {
         label: '📗 Verbos',
@@ -1367,11 +1465,26 @@
       }
     };
 
-    const DEFAULT_CHALLENGES = [{"id": "sust-1", "block": "sustantivos", "title": "Desafío 1 · Sustantivos (Básico)", "words": [{"word": "lápiz", "context": "Guarda el <mark>lápiz</mark> dentro del estuche.", "cats": ["Común", "Concreto", "Contable", "Individual", "Masc. Sing."], "explanation": "Objeto físico que se puede contar por unidades."}, {"word": "arena", "context": "La <mark>arena</mark> de la playa estaba muy caliente.", "cats": ["Común", "Concreto", "No contable", "No procede", "Fem. Sing."], "explanation": "Sustancia continua: no se cuenta por unidades."}, {"word": "Madrid", "context": "El tren llega a <mark>Madrid</mark> a las cinco.", "cats": ["Propio", "No procede", "No procede", "No procede", "Masc. Sing."], "explanation": "Nombre propio de ciudad (topónimo)."}, {"word": "agua", "context": "Bebe un poco de <mark>agua</mark> fresca.", "cats": ["Común", "Concreto", "No contable", "No procede", "Fem. Sing."], "explanation": "Sustantivo femenino (el agua / las aguas frescas), no contable."}, {"word": "perros", "context": "Los <mark>perros</mark> corren por el parque.", "cats": ["Común", "Concreto", "Contable", "Individual", "Masc. Plur."], "explanation": "Aunque esté en plural, designa seres individuales."}, {"word": "Guadalquivir", "context": "El río <mark>Guadalquivir</mark> pasa por Sevilla.", "cats": ["Propio", "No procede", "No procede", "No procede", "Masc. Sing."], "explanation": "Nombre propio de río."}, {"word": "pan", "context": "Compramos <mark>pan</mark> recién horneado.", "cats": ["Común", "Concreto", "No contable", "No procede", "Masc. Sing."], "explanation": "Materia no contable (se mide en barras o kilos)."}, {"word": "árboles", "context": "Aquellos <mark>árboles</mark> dan mucha sombra.", "cats": ["Común", "Concreto", "Contable", "Individual", "Masc. Plur."], "explanation": "Sustantivo común, concreto, contable e individual en plural."}, {"word": "sal", "context": "Pásame la <mark>sal</mark>, por favor.", "cats": ["Común", "Concreto", "No contable", "No procede", "Fem. Sing."], "explanation": "Sustancia no contable en femenino singular."}, {"word": "mesa", "context": "Deja los cuadernos encima de la <mark>mesa</mark>.", "cats": ["Común", "Concreto", "Contable", "Individual", "Fem. Sing."], "explanation": "Objeto físico contable e individual."}]}, {"id": "sust-2", "block": "sustantivos", "title": "Desafío 2 · Sustantivos (Colectivos y No contables)", "words": [{"word": "rebaño", "context": "El pastor guía el <mark>rebaño</mark> por la cañada.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "En singular nombra un conjunto de ovejas."}, {"word": "jauría", "context": "La <mark>jauría</mark> corría por el monte.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de perros."}, {"word": "enjambre", "context": "Un <mark>enjambre</mark> salió de la colmena.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "Conjunto de abejas."}, {"word": "archipiélago", "context": "Canarias es un <mark>archipiélago</mark> volcánico.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "Conjunto de islas."}, {"word": "constelación", "context": "Vimos una <mark>constelación</mark> brillante anoche.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de estrellas."}, {"word": "flota", "context": "La <mark>flota</mark> pesquera regresó al puerto.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de barcos."}, {"word": "azúcar", "context": "Añade una cucharada de <mark>azúcar</mark>.", "cats": ["Común", "Concreto", "No contable", "No procede", "Masc. Sing."], "explanation": "Sustancia continua no contable."}, {"word": "harina", "context": "Necesitamos <mark>harina</mark> para el bizcocho.", "cats": ["Común", "Concreto", "No contable", "No procede", "Fem. Sing."], "explanation": "Materia no contable."}, {"word": "arboleda", "context": "Paseamos por una frondosa <mark>arboleda</mark>.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de árboles en singular."}, {"word": "gente", "context": "Había mucha <mark>gente</mark> en la plaza.", "cats": ["Común", "Concreto", "No contable", "Colectivo", "Fem. Sing."], "explanation": "Colectivo de personas que no admite plural numeral."}]}, {"id": "sust-3", "block": "sustantivos", "title": "Desafío 3 · Sustantivos (Abstractos y Propios)", "words": [{"word": "alegría", "context": "Saltaba de <mark>alegría</mark> al ver la nota.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Sentimiento inmaterial: no se clasifica en contable ni individual/colectivo."}, {"word": "libertad", "context": "Defendemos la <mark>libertad</mark> de expresión.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Concepto abstracto."}, {"word": "miedo", "context": "Sintió <mark>miedo</mark> durante la tormenta.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Masc. Sing."], "explanation": "Emoción abstracta."}, {"word": "honestidad", "context": "Valoramos mucho tu <mark>honestidad</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Cualidad abstracta."}, {"word": "paciencia", "context": "Hay que tener <mark>paciencia</mark> para aprender.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Virtud o cualidad no perceptible por los sentidos."}, {"word": "Pirineos", "context": "Esquiamos en los <mark>Pirineos</mark> en invierno.", "cats": ["Propio", "No procede", "No procede", "No procede", "Masc. Plur."], "explanation": "Nombre propio de cordillera en masculino plural."}, {"word": "esperanza", "context": "Nunca perdió la <mark>esperanza</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Sentimiento abstracto."}, {"word": "amistad", "context": "Nuestra <mark>amistad</mark> dura desde Infantil.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Relación afectiva abstracta."}, {"word": "justicia", "context": "Todos pedían <mark>justicia</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Valor abstracto."}, {"word": "Europa", "context": "España forma parte de <mark>Europa</mark>.", "cats": ["Propio", "No procede", "No procede", "No procede", "Fem. Sing."], "explanation": "Nombre propio de continente."}]}, {"id": "sust-4", "block": "sustantivos", "title": "Desafío 4 · Sustantivos (Repaso Avanzado)", "words": [{"word": "vajilla", "context": "Guardamos la <mark>vajilla</mark> en el armario.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de platos, vasos y fuentes."}, {"word": "aire", "context": "Respira el <mark>aire</mark> puro de la montaña.", "cats": ["Común", "Concreto", "No contable", "No procede", "Masc. Sing."], "explanation": "Aunque sea invisible, se percibe físicamente: es concreto y no contable."}, {"word": "orquesta", "context": "La <mark>orquesta</mark> afinó sus instrumentos.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de músicos."}, {"word": "solidaridad", "context": "Mostraron gran <mark>solidaridad</mark> con los afectados.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Valor abstracto."}, {"word": "libros", "context": "Ordena los <mark>libros</mark> de la estantería.", "cats": ["Común", "Concreto", "Contable", "Individual", "Masc. Plur."], "explanation": "Objetos individuales en plural."}, {"word": "alumnado", "context": "Todo el <mark>alumnado</mark> participó en la carrera.", "cats": ["Común", "Concreto", "No contable", "Colectivo", "Masc. Sing."], "explanation": "Conjunto de alumnos."}, {"word": "aceite", "context": "Echa un chorrito de <mark>aceite</mark> de oliva.", "cats": ["Común", "Concreto", "No contable", "No procede", "Masc. Sing."], "explanation": "Líquido no contable."}, {"word": "dentadura", "context": "Cuida bien tu <mark>dentadura</mark>.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Fem. Sing."], "explanation": "Conjunto de dientes."}, {"word": "Teide", "context": "Subimos en teleférico al <mark>Teide</mark>.", "cats": ["Propio", "No procede", "No procede", "No procede", "Masc. Sing."], "explanation": "Nombre propio de volcán."}, {"word": "sabiduría", "context": "Admiraban su gran <mark>sabiduría</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Fem. Sing."], "explanation": "Cualidad intelectual abstracta."}]}, {"id": "sust-5", "block": "sustantivos", "title": "Desafío 5 · Sustantivos en Oraciones de Contexto", "words": [{"word": "banco", "context": "Un <mark>banco</mark> de sardinas brillaba bajo el agua.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "En este contexto significa conjunto de peces (colectivo)."}, {"word": "banco", "context": "Nos sentamos en un <mark>banco</mark> de madera del parque.", "cats": ["Común", "Concreto", "Contable", "Individual", "Masc. Sing."], "explanation": "Aquí designa un único asiento (individual)."}, {"word": "pino", "context": "Aquel <mark>pino</mark> centenario mide veinte metros.", "cats": ["Común", "Concreto", "Contable", "Individual", "Masc. Sing."], "explanation": "Un solo árbol (individual)."}, {"word": "pinar", "context": "Nos perdimos por el <mark>pinar</mark> detrás de la ermita.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "Terreno poblado de pinos (colectivo)."}, {"word": "estrella", "context": "Miramos una <mark>estrella</mark> fugaz en agosto.", "cats": ["Común", "Concreto", "Contable", "Individual", "Fem. Sing."], "explanation": "Un único astro (individual)."}, {"word": "luz", "context": "Abre la ventana para que entre la <mark>luz</mark>.", "cats": ["Común", "Concreto", "No contable", "No procede", "Fem. Sing."], "explanation": "Se percibe por la vista (concreto) y no se cuenta por unidades."}, {"word": "tiempo", "context": "No tuvimos <mark>tiempo</mark> de terminar el dibujo.", "cats": ["Común", "Abstracto", "No procede", "No procede", "Masc. Sing."], "explanation": "Magnitud abstracta."}, {"word": "coro", "context": "El <mark>coro</mark> cantó un villancico precioso.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "Agrupación de personas que cantan juntas (colectivo)."}, {"word": "equipo", "context": "Nuestro <mark>equipo</mark> ganó el torneo escolar.", "cats": ["Común", "Concreto", "Contable", "Colectivo", "Masc. Sing."], "explanation": "Conjunto de jugadores (colectivo)."}, {"word": "Atlántico", "context": "El océano <mark>Atlántico</mark> baña las costas gallegas.", "cats": ["Propio", "No procede", "No procede", "No procede", "Masc. Sing."], "explanation": "Nombre propio de océano."}]}, {"id": "adj-1", "block": "adjetivos", "title": "Adjetivos · Desafío 1 (Grados y Terminaciones)", "words": [{"word": "veloz", "context": "El guepardo es un animal muy <mark>veloz</mark>.", "cats": ["Superlativo Absoluto", "1 terminación", "Especificativo", "Invariable", "Singular"], "explanation": "El adverbio «muy» + veloz forma el superlativo absoluto; veloz sirve para masc. y fem."}, {"word": "altísimas", "context": "Vimos unas montañas <mark>altísimas</mark> desde el avión.", "cats": ["Superlativo Absoluto", "2 terminaciones", "Especificativo", "Femenino", "Plural"], "explanation": "El sufijo -ísimas expresa grado superlativo absoluto."}, {"word": "más rápida que", "context": "La liebre es <mark>más rápida que</mark> la tortuga.", "cats": ["Comp. Superioridad", "2 terminaciones", "Especificativo", "Femenino", "Singular"], "explanation": "Estructura comparativa de superioridad (más + adj. + que)."}, {"word": "tan divertido como", "context": "Este libro es <mark>tan divertido como</mark> la película.", "cats": ["Comp. Igualdad", "2 terminaciones", "Especificativo", "Masc. Sing.", "Singular"], "explanation": "Estructura comparativa de igualdad (tan + adj. + como)."}, {"word": "menos ruidoso que", "context": "El campo es <mark>menos ruidoso que</mark> la ciudad.", "cats": ["Comp. Inferioridad", "2 terminaciones", "Especificativo", "Masc. Sing.", "Singular"], "explanation": "Estructura comparativa de inferioridad (menos + adj. + que)."}, {"word": "el más alto de", "context": "Juan es <mark>el más alto de</mark> toda la clase.", "cats": ["Superlativo Relativo", "2 terminaciones", "Especificativo", "Masc. Sing.", "Singular"], "explanation": "Destaca una cualidad en grado máximo dentro de un grupo (el más... de)."}, {"word": "azul", "context": "Me puse mi camiseta <mark>azul</mark> favorita.", "cats": ["Positivo", "1 terminación", "Especificativo", "Invariable", "Singular"], "explanation": "Grado positivo, 1 terminación (el coche azul / la camiseta azul)."}, {"word": "alegres", "context": "Unos niños <mark>alegres</mark> jugaban en el patio.", "cats": ["Positivo", "1 terminación", "Especificativo", "Invariable", "Plural"], "explanation": "Alegre tiene una sola forma para masculino y femenino."}, {"word": "pequeñas", "context": "Guardó las llaves <mark>pequeñas</mark> en el bolsillo.", "cats": ["Positivo", "2 terminaciones", "Especificativo", "Femenino", "Plural"], "explanation": "Tiene dos terminaciones (pequeño/pequeña) y restringe qué llaves son."}, {"word": "dulce", "context": "Probamos una manzana <mark>dulce</mark> de postre.", "cats": ["Positivo", "1 terminación", "Especificativo", "Invariable", "Singular"], "explanation": "Adjetivo de una terminación en grado positivo."}]}, {"id": "adj-2", "block": "adjetivos", "title": "Adjetivos · Desafío 2 (Explicativos e Irregulares)", "words": [{"word": "blanca", "context": "La <mark>blanca</mark> nieve cubría todos los tejados.", "cats": ["Positivo", "2 terminaciones", "Explicativo", "Femenino", "Singular"], "explanation": "Epíteto explicativo: destaca una cualidad propia de la nieve."}, {"word": "óptimo", "context": "El equipo logró un resultado <mark>óptimo</mark>.", "cats": ["Superlativo Absoluto", "2 terminaciones", "Especificativo", "Masc. Sing.", "Singular"], "explanation": "Superlativo sintético irregular de «bueno» (muy bueno = óptimo)."}, {"word": "mejor", "context": "Tu redacción es <mark>mejor</mark> que la mía.", "cats": ["Comp. Superioridad", "1 terminación", "Especificativo", "Invariable", "Singular"], "explanation": "Comparativo sintético irregular de «bueno» (más bueno = mejor)."}, {"word": "fiero", "context": "El <mark>fiero</mark> león rugió en la sabana.", "cats": ["Positivo", "2 terminaciones", "Explicativo", "Masc. Sing.", "Singular"], "explanation": "Adjetivo explicativo antepuesto al sustantivo."}, {"word": "paupérrimo", "context": "Vivían en un barrio <mark>paupérrimo</mark>.", "cats": ["Superlativo Absoluto", "2 terminaciones", "Especificativo", "Masc. Sing.", "Singular"], "explanation": "Superlativo culto de «pobre»."}, {"word": "peor", "context": "Este invierno hace <mark>peor</mark> tiempo que el pasado.", "cats": ["Comp. Superioridad", "1 terminación", "Especificativo", "Invariable", "Singular"], "explanation": "Comparativo sintético irregular de «malo»."}, {"word": "verde", "context": "Descansamos sobre la <mark>verde</mark> hierba del prado.", "cats": ["Positivo", "1 terminación", "Explicativo", "Invariable", "Singular"], "explanation": "Epíteto explicativo; «verde» tiene 1 sola terminación de género."}, {"word": "antiquísimas", "context": "Visitamos unas ruinas <mark>antiquísimas</mark>.", "cats": ["Superlativo Absoluto", "2 terminaciones", "Especificativo", "Femenino", "Plural"], "explanation": "Superlativo culto de «antiguo»."}, {"word": "amable", "context": "Nos atendió una profesora muy <mark>amable</mark>.", "cats": ["Superlativo Absoluto", "1 terminación", "Especificativo", "Invariable", "Singular"], "explanation": "«Muy amable» expresa grado superlativo absoluto."}, {"word": "fría", "context": "Bebimos un vaso de agua <mark>fría</mark>.", "cats": ["Positivo", "2 terminaciones", "Especificativo", "Femenino", "Singular"], "explanation": "Diferencia el agua fría de la caliente (especificativo)."}]}, {"id": "verb-1", "block": "verbos", "title": "Verbos · Desafío 1 (Tiempos Simples de Indicativo)", "words": [{"word": "cantábamos", "context": "Nosotros <mark>cantábamos</mark> en el coro del colegio.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Pretérito imperfecto"], "explanation": "Del verbo cantar (1.ª conj.), pretérito imperfecto de indicativo."}, {"word": "escribirán", "context": "Ellos <mark>escribirán</mark> una carta mañana.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Plural", "Indicativo", "Futuro simple"], "explanation": "Del verbo escribir (3.ª conj.), futuro simple de indicativo."}, {"word": "comiste", "context": "Tú <mark>comiste</mark> muy rápido ayer.", "cats": ["2.ª (-er)", "Personal", "2.ª persona", "Singular", "Indicativo", "Pretérito perfecto simple"], "explanation": "Del verbo comer (2.ª conj.), pretérito perfecto simple de indicativo."}, {"word": "leo", "context": "Yo <mark>leo</mark> veinte páginas cada noche.", "cats": ["2.ª (-er)", "Personal", "1.ª persona", "Singular", "Indicativo", "Presente"], "explanation": "Del verbo leer (2.ª conj.), presente de indicativo."}, {"word": "viajaríamos", "context": "Nosotros <mark>viajaríamos</mark> a Roma si pudiéramos.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Condicional simple"], "explanation": "Terminación -íamos sobre infinitivo viajar: condicional simple de indicativo."}, {"word": "vivís", "context": "Vosotros <mark>vivís</mark> cerca de la biblioteca.", "cats": ["3.ª (-ir)", "Personal", "2.ª persona", "Plural", "Indicativo", "Presente"], "explanation": "Del verbo vivir (3.ª conj.), 2.ª persona plural, presente de indicativo."}, {"word": "temía", "context": "Él <mark>temía</mark> llegar tarde al examen.", "cats": ["2.ª (-er)", "Personal", "3.ª persona", "Singular", "Indicativo", "Pretérito imperfecto"], "explanation": "Del verbo temer (2.ª conj.), pretérito imperfecto de indicativo."}, {"word": "partieron", "context": "Los exploradores <mark>partieron</mark> al amanecer.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Plural", "Indicativo", "Pretérito perfecto simple"], "explanation": "Del verbo partir (3.ª conj.), pretérito perfecto simple de indicativo."}, {"word": "beberás", "context": "Tú <mark>beberás</mark> agua después de correr.", "cats": ["2.ª (-er)", "Personal", "2.ª persona", "Singular", "Indicativo", "Futuro simple"], "explanation": "Del verbo beber (2.ª conj.), futuro simple de indicativo."}, {"word": "saltaría", "context": "Yo <mark>saltaría</mark> ese muro sin problema.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Singular", "Indicativo", "Condicional simple"], "explanation": "Del verbo saltar (1.ª conj.), condicional simple de indicativo."}]}, {"id": "verb-2", "block": "verbos", "title": "Verbos · Desafío 2 (Compuestos, Subjuntivo y Verboides)", "words": [{"word": "hayáis terminado", "context": "Ojalá <mark>hayáis terminado</mark> los deberes antes de las seis.", "cats": ["1.ª (-ar)", "Personal", "2.ª persona", "Plural", "Subjuntivo", "Pretérito perfecto compuesto"], "explanation": "«Ojalá» introduce subjuntivo; hayáis + participio = pretérito perfecto compuesto."}, {"word": "había salido", "context": "Cuando llegamos, el tren ya <mark>había salido</mark>.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Singular", "Indicativo", "Pretérito pluscuamperfecto"], "explanation": "Acción pasada anterior a otra pasada: pretérito pluscuamperfecto de indicativo."}, {"word": "escribiendo", "context": "Estaba <mark>escribiendo</mark> un cuento de aventuras.", "cats": ["3.ª (-ir)", "Gerundio", "No procede", "No procede", "No procede", "No procede"], "explanation": "El gerundio (-iendo) es una forma no personal: no tiene persona, número, tiempo ni modo."}, {"word": "resuelto", "context": "Hemos <mark>resuelto</mark> todos los problemas.", "cats": ["2.ª (-er)", "Participio", "No procede", "No procede", "No procede", "No procede"], "explanation": "Participio irregular del verbo resolver (2.ª conj.): forma no personal."}, {"word": "escuchad", "context": "¡<mark>Escuchad</mark> con atención las instrucciones!", "cats": ["1.ª (-ar)", "Personal", "2.ª persona", "Plural", "Imperativo", "Presente"], "explanation": "Orden directa a vosotros: modo imperativo."}, {"word": "habremos llegado", "context": "A las diez ya <mark>habremos llegado</mark> a casa.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Futuro compuesto"], "explanation": "Habremos + participio: futuro compuesto de indicativo."}, {"word": "correr", "context": "Me encanta <mark>correr</mark> por la playa al atardecer.", "cats": ["2.ª (-er)", "Infinitivo", "No procede", "No procede", "No procede", "No procede"], "explanation": "Infinitivo terminado en -er (2.ª conj.), forma no personal."}, {"word": "viniera", "context": "Me alegraría mucho que él <mark>viniera</mark> a la fiesta.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Singular", "Subjuntivo", "Pretérito imperfecto"], "explanation": "Del verbo venir (3.ª conj.), pretérito imperfecto de subjuntivo."}, {"word": "hemos visto", "context": "Esta tarde <mark>hemos visto</mark> un documental genial.", "cats": ["2.ª (-er)", "Personal", "1.ª persona", "Plural", "Indicativo", "Pretérito perfecto compuesto"], "explanation": "Del verbo ver (2.ª conj.), pretérito perfecto compuesto de indicativo."}, {"word": "habrían ganado", "context": "Con un gol más <mark>habrían ganado</mark> el partido.", "cats": ["1.ª (-ar)", "Personal", "3.ª persona", "Plural", "Indicativo", "Condicional compuesto"], "explanation": "Habrían + participio: condicional compuesto de indicativo."}]}, {"id": "verb-3", "block": "verbos", "title": "Verbos · Desafío 3 (Radar de Conjugación Completa)", "words": [{"word": "Conjugación de CANTAR", "conjugation": ["yo cantaba", "tú cantabas", "él cantaba", "nosotros cantábamos", "vosotros cantabais", "ellos cantaban"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito imperfecto"], "explanation": "Serie completa del pretérito imperfecto de indicativo (1.ª conjugación)."}, {"word": "Conjugación de TEMER", "conjugation": ["yo temeré", "tú temerás", "él temerá", "nosotros temeremos", "vosotros temeréis", "ellos temerán"], "cats": ["2.ª (-er)", "Personal", "No procede", "No procede", "Indicativo", "Futuro simple"], "explanation": "Serie completa del futuro simple de indicativo (2.ª conjugación)."}, {"word": "Conjugación de PARTIR", "conjugation": ["yo parta", "tú partas", "él parta", "nosotros partamos", "vosotros partáis", "ellos partan"], "cats": ["3.ª (-ir)", "Personal", "No procede", "No procede", "Subjuntivo", "Presente"], "explanation": "Presente de subjuntivo del verbo partir (3.ª conjugación)."}, {"word": "Conjugación de AMAR", "conjugation": ["yo amé", "tú amaste", "él amó", "nosotros amamos", "vosotros amasteis", "ellos amaron"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito perfecto simple"], "explanation": "Pretérito perfecto simple de indicativo (1.ª conjugación)."}, {"word": "Conjugación de COMER", "conjugation": ["yo comería", "tú comerías", "él comería", "nosotros comeríamos", "vosotros comeríais", "ellos comerían"], "cats": ["2.ª (-er)", "Personal", "No procede", "No procede", "Indicativo", "Condicional simple"], "explanation": "Condicional simple de indicativo (2.ª conjugación)."}, {"word": "Conjugación de VIVIR", "conjugation": ["yo he vivido", "tú has vivido", "él ha vivido", "nosotros hemos vivido", "vosotros habéis vivido", "ellos han vivido"], "cats": ["3.ª (-ir)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito perfecto compuesto"], "explanation": "Pretérito perfecto compuesto de indicativo (3.ª conjugación)."}, {"word": "Conjugación de SALTAR", "conjugation": ["yo saltara", "tú saltaras", "él saltara", "nosotros saltáramos", "vosotros saltarais", "ellos saltaran"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Subjuntivo", "Pretérito imperfecto"], "explanation": "Pretérito imperfecto de subjuntivo (1.ª conjugación)."}, {"word": "Conjugación de BEBER", "conjugation": ["yo había bebido", "tú habías bebido", "él había bebido", "nosotros habíamos bebido", "vosotros habíais bebido", "ellos habían bebido"], "cats": ["2.ª (-er)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito pluscuamperfecto"], "explanation": "Pretérito pluscuamperfecto de indicativo (2.ª conjugación)."}, {"word": "Conjugación de SUBIR", "conjugation": ["yo subo", "tú subes", "él sube", "nosotros subimos", "vosotros subís", "ellos suben"], "cats": ["3.ª (-ir)", "Personal", "No procede", "No procede", "Indicativo", "Presente"], "explanation": "Presente de indicativo (3.ª conjugación)."}, {"word": "Conjugación de HABLAR", "conjugation": ["yo habré hablado", "tú habrás hablado", "él habrá hablado", "nosotros habremos hablado", "vosotros habréis hablado", "ellos habrán hablado"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Indicativo", "Futuro compuesto"], "explanation": "Futuro compuesto de indicativo (1.ª conjugación)."}]}, {"id": "det-1", "block": "determinantes", "title": "Determinantes · Desafío 1 (Artículos y Demostrativos)", "words": [{"word": "las", "context": "Guarda <mark>las</mark> tijeras en el cajón.", "cats": ["Artículo", "Determinado", "Femenino", "Plural"], "explanation": "Artículo determinado femenino plural."}, {"word": "un", "context": "Encontramos <mark>un</mark> gatito en el jardín.", "cats": ["Artículo", "Indeterminado", "Masculino", "Singular"], "explanation": "Artículo indeterminado masculino singular."}, {"word": "este", "context": "Pásame <mark>este</mark> cuaderno de aquí.", "cats": ["Demostrativo", "Cercanía", "Masculino", "Singular"], "explanation": "Demostrativo de cercanía."}, {"word": "aquellas", "context": "Mira <mark>aquellas</mark> nubes lejanas en el horizonte.", "cats": ["Demostrativo", "Lejanía", "Femenino", "Plural"], "explanation": "Demostrativo de lejanía, femenino plural."}, {"word": "esa", "context": "Cierra <mark>esa</mark> puerta que tienes cerca.", "cats": ["Demostrativo", "Distancia media", "Femenino", "Singular"], "explanation": "Demostrativo de distancia media."}, {"word": "al", "context": "Vamos <mark>al</mark> parque después de merendar.", "cats": ["Artículo", "Determinado", "Masculino", "Singular"], "explanation": "Artículo contracto (a + el), masculino singular."}, {"word": "unas", "context": "Compramos <mark>unas</mark> entradas para el teatro.", "cats": ["Artículo", "Indeterminado", "Femenino", "Plural"], "explanation": "Artículo indeterminado femenino plural."}, {"word": "estos", "context": "Recoge <mark>estos</mark> lápices de la mesa.", "cats": ["Demostrativo", "Cercanía", "Masculino", "Plural"], "explanation": "Demostrativo de cercanía, masculino plural."}, {"word": "del", "context": "Venimos <mark>del</mark> polideportivo municipal.", "cats": ["Artículo", "Determinado", "Masculino", "Singular"], "explanation": "Artículo contracto (de + el), masculino singular."}, {"word": "aquel", "context": "Recuerdo muy bien <mark>aquel</mark> verano en el pueblo.", "cats": ["Demostrativo", "Lejanía", "Masculino", "Singular"], "explanation": "Demostrativo de lejanía, masculino singular."}]}, {"id": "det-2", "block": "determinantes", "title": "Determinantes · Desafío 2 (Posesivos y Numerales)", "words": [{"word": "mi", "context": "He olvidado <mark>mi</mark> mochila en clase.", "cats": ["Posesivo", "Un poseedor", "Invariable", "Singular"], "explanation": "«Mi» sirve tanto para masculino (mi libro) como para femenino (mi mochila): género invariable."}, {"word": "nuestras", "context": "Presentamos <mark>nuestras</mark> ideas en la asamblea.", "cats": ["Posesivo", "Varios poseedores", "Femenino", "Plural"], "explanation": "Posesivo de varios poseedores, femenino plural."}, {"word": "tercer", "context": "Vivimos en el <mark>tercer</mark> piso.", "cats": ["Numeral", "Ordinal", "Masculino", "Singular"], "explanation": "Numeral ordinal (indica orden), forma apocopada de tercero."}, {"word": "veinte", "context": "Hay <mark>veinte</mark> alumnos en este grupo.", "cats": ["Numeral", "Cardinal", "Invariable", "Plural"], "explanation": "Numeral cardinal: no varía en género (veinte niños / veinte niñas)."}, {"word": "tus", "context": "Ordena <mark>tus</mark> juguetes antes de cenar.", "cats": ["Posesivo", "Un poseedor", "Invariable", "Plural"], "explanation": "Posesivo de un poseedor, invariable en género, plural."}, {"word": "vuestro", "context": "¿Cuál es <mark>vuestro</mark> equipo favorito?", "cats": ["Posesivo", "Varios poseedores", "Masculino", "Singular"], "explanation": "Posesivo de varios poseedores, masculino singular."}, {"word": "octava", "context": "Llegó en <mark>octava</mark> posición a la meta.", "cats": ["Numeral", "Ordinal", "Femenino", "Singular"], "explanation": "Numeral ordinal femenino singular."}, {"word": "dos", "context": "Necesito <mark>dos</mark> cartulinas blancas.", "cats": ["Numeral", "Cardinal", "Invariable", "Plural"], "explanation": "Numeral cardinal invariable en género."}, {"word": "su", "context": "Laura guardó <mark>su</mark> estuche.", "cats": ["Posesivo", "Un poseedor", "Invariable", "Singular"], "explanation": "Posesivo de un poseedor, invariable en género, singular."}, {"word": "primer", "context": "Hoy es el <mark>primer</mark> día de primavera.", "cats": ["Numeral", "Ordinal", "Masculino", "Singular"], "explanation": "Numeral ordinal masculino singular."}]}, {"id": "det-3", "block": "determinantes", "title": "Determinantes · Desafío 3 (Indefinidos e Interrog./Exclam.)", "words": [{"word": "pocos", "context": "Quedan <mark>pocos</mark> lápices de colores en la caja.", "cats": ["Indefinido", "No procede", "Masculino", "Plural"], "explanation": "Cuantificador impreciso: determinante indefinido masculino plural."}, {"word": "algún", "context": "¿Tienes <mark>algún</mark> libro de aventuras?", "cats": ["Indefinido", "No procede", "Masculino", "Singular"], "explanation": "Determinante indefinido masculino singular."}, {"word": "Qué", "context": "¡<mark>Qué</mark> sorpresa tan agradable nos has dado!", "cats": ["Interrog. / Exclam.", "No procede", "Invariable", "Invariable"], "explanation": "Determinante exclamativo con tilde diacrítica; invariable en género y número."}, {"word": "Cuántos", "context": "¿<mark>Cuántos</mark> años tiene tu hermano mayor?", "cats": ["Interrog. / Exclam.", "No procede", "Masculino", "Plural"], "explanation": "Determinante interrogativo masculino plural."}, {"word": "ninguna", "context": "No hubo <mark>ninguna</mark> duda durante el examen.", "cats": ["Indefinido", "No procede", "Femenino", "Singular"], "explanation": "Determinante indefinido femenino singular."}, {"word": "cada", "context": "Repartimos dos folios a <mark>cada</mark> alumno.", "cats": ["Indefinido", "No procede", "Invariable", "Singular"], "explanation": "Determinante indefinido distributivo, invariable en género."}, {"word": "muchas", "context": "Tengo <mark>muchas</mark> ganas de ir de excursión.", "cats": ["Indefinido", "No procede", "Femenino", "Plural"], "explanation": "Determinante indefinido femenino plural."}, {"word": "Cuánta", "context": "¡<mark>Cuánta</mark> gente ha venido al festival!", "cats": ["Interrog. / Exclam.", "No procede", "Femenino", "Singular"], "explanation": "Determinante exclamativo femenino singular."}, {"word": "bastantes", "context": "Trajeron <mark>bastantes</mark> botellas de agua.", "cats": ["Indefinido", "No procede", "Invariable", "Plural"], "explanation": "Determinante indefinido invariable en género, plural."}, {"word": "Qué", "context": "¿<mark>Qué</mark> película prefieres ver esta tarde?", "cats": ["Interrog. / Exclam.", "No procede", "Invariable", "Invariable"], "explanation": "Determinante interrogativo que acompaña al sustantivo «película»."}]}, {"id": "det-4", "block": "determinantes", "title": "Determinantes · Desafío 4 (Radar: ¿Determinante o Pronombre?)", "words": [{"word": "ese", "context": "Dame <mark>ese</mark> cuaderno azul, por favor.", "cats": ["Demostrativo", "Distancia media", "Masculino", "Singular"], "explanation": "Acompaña al sustantivo «cuaderno»: es determinante demostrativo."}, {"word": "ese", "context": "No quiero este bolígrafo, dame <mark>ese</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Masculino", "Singular"], "explanation": "Sustituye al sustantivo «bolígrafo» (no lleva nombre detrás): es pronombre."}, {"word": "algunos", "context": "<mark>Algunos</mark> niños prefieren jugar al baloncesto.", "cats": ["Indefinido", "No procede", "Masculino", "Plural"], "explanation": "Acompaña a «niños»: es determinante indefinido."}, {"word": "algunos", "context": "Invitamos a todos, pero solo vinieron <mark>algunos</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Masculino", "Plural"], "explanation": "Sustituye a los invitados: es pronombre indefinido."}, {"word": "tres", "context": "Compré <mark>tres</mark> entradas para el cine.", "cats": ["Numeral", "Cardinal", "Invariable", "Plural"], "explanation": "Acompaña a «entradas»: es determinante numeral cardinal."}, {"word": "tres", "context": "De todas las manzanas, me comí <mark>tres</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Invariable", "Plural"], "explanation": "Sustituye a «manzanas»: es pronombre numeral."}, {"word": "aquella", "context": "En <mark>aquella</mark> montaña hay nieve todo el año.", "cats": ["Demostrativo", "Lejanía", "Femenino", "Singular"], "explanation": "Acompaña al sustantivo «montaña»: es determinante demostrativo."}, {"word": "aquella", "context": "Esta mochila es mía y <mark>aquella</mark> es de Marta.", "cats": ["Pronombre (sustituye)", "No procede", "Femenino", "Singular"], "explanation": "Sustituye a «mochila»: es pronombre demostrativo."}, {"word": "pocas", "context": "Quedan <mark>pocas</mark> galletas en el paquete.", "cats": ["Indefinido", "No procede", "Femenino", "Plural"], "explanation": "Acompaña al sustantivo «galletas»: es determinante indefinido."}, {"word": "pocas", "context": "Había muchas sillas libres, pero ocuparon <mark>pocas</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Femenino", "Plural"], "explanation": "Sustituye a «sillas»: es pronombre indefinido."}]}];
+    const DEFAULT_CHALLENGES = [
+      {"id": "sust-1", "block": "sustantivos", "title": "Desafío 1 · Sustantivos (Básico)", "words": [{"word": "lápiz", "context": "Guarda el <mark>lápiz</mark> dentro del estuche.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Objeto físico que se puede contar por unidades."}, {"word": "arena", "context": "La <mark>arena</mark> de la playa estaba muy caliente.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Sustancia continua: no se cuenta por unidades."}, {"word": "Madrid", "context": "El tren llega a <mark>Madrid</mark> a las cinco.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de ciudad (topónimo)."}, {"word": "agua", "context": "Bebe un poco de <mark>agua</mark> fresca.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Sustantivo común, concreto y no contable."}, {"word": "perros", "context": "Los <mark>perros</mark> corren por el parque.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Aunque esté en plural, designa seres individuales."}, {"word": "Guadalquivir", "context": "El río <mark>Guadalquivir</mark> pasa por Sevilla.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de río."}, {"word": "pan", "context": "Compramos <mark>pan</mark> recién horneado.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Materia no contable (se mide en barras o kilos)."}, {"word": "árboles", "context": "Aquellos <mark>árboles</mark> dan mucha sombra.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Sustantivo común, concreto, contable e individual."}, {"word": "sal", "context": "Pásame la <mark>sal</mark>, por favor.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Sustancia no contable."}, {"word": "mesa", "context": "Deja los cuadernos encima de la <mark>mesa</mark>.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Objeto físico contable e individual."}]},
+      {"id": "sust-2", "block": "sustantivos", "title": "Desafío 2 · Sustantivos (Colectivos y No contables)", "words": [{"word": "rebaño", "context": "El pastor guía el <mark>rebaño</mark> por la cañada.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "En singular nombra un conjunto de ovejas."}, {"word": "jauría", "context": "La <mark>jauría</mark> corría por el monte.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de perros."}, {"word": "enjambre", "context": "Un <mark>enjambre</mark> salió de la colmena.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de abejas."}, {"word": "archipiélago", "context": "Canarias es un <mark>archipiélago</mark> volcánico.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de islas."}, {"word": "constelación", "context": "Vimos una <mark>constelación</mark> brillante anoche.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de estrellas."}, {"word": "flota", "context": "La <mark>flota</mark> pesquera regresó al puerto.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de barcos."}, {"word": "azúcar", "context": "Añade una cucharada de <mark>azúcar</mark>.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Sustancia continua no contable."}, {"word": "harina", "context": "Necesitamos <mark>harina</mark> para el bizcocho.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Materia no contable."}, {"word": "arboleda", "context": "Paseamos por una frondosa <mark>arboleda</mark>.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de árboles en singular."}, {"word": "gente", "context": "Había mucha <mark>gente</mark> en la plaza.", "cats": ["Común", "Concreto", "No contable", "Colectivo"], "explanation": "Colectivo de personas que no admite plural numeral."}]},
+      {"id": "sust-3", "block": "sustantivos", "title": "Desafío 3 · Sustantivos (Abstractos y Propios)", "words": [{"word": "alegría", "context": "Saltaba de <mark>alegría</mark> al ver la nota.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Sentimiento inmaterial: no se clasifica en contable ni individual/colectivo."}, {"word": "libertad", "context": "Defendemos la <mark>libertad</mark> de expresión.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Concepto abstracto."}, {"word": "miedo", "context": "Sintió <mark>miedo</mark> durante la tormenta.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Emoción abstracta."}, {"word": "honestidad", "context": "Valoramos mucho tu <mark>honestidad</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Cualidad abstracta."}, {"word": "paciencia", "context": "Hay que tener <mark>paciencia</mark> para aprender.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Virtud o cualidad no perceptible por los sentidos."}, {"word": "Pirineos", "context": "Esquiamos en los <mark>Pirineos</mark> en invierno.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de cordillera."}, {"word": "esperanza", "context": "Nunca perdió la <mark>esperanza</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Sentimiento abstracto."}, {"word": "amistad", "context": "Nuestra <mark>amistad</mark> dura desde Infantil.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Relación afectiva abstracta."}, {"word": "justicia", "context": "Todos pedían <mark>justicia</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Valor abstracto."}, {"word": "Europa", "context": "España forma parte de <mark>Europa</mark>.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de continente."}]},
+      {"id": "sust-4", "block": "sustantivos", "title": "Desafío 4 · Sustantivos (Repaso Avanzado)", "words": [{"word": "vajilla", "context": "Guardamos la <mark>vajilla</mark> en el armario.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de platos, vasos y fuentes."}, {"word": "aire", "context": "Respira el <mark>aire</mark> puro de la montaña.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Aunque sea invisible, se percibe físicamente: es concreto y no contable."}, {"word": "orquesta", "context": "La <mark>orquesta</mark> afinó sus instrumentos.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de músicos."}, {"word": "solidaridad", "context": "Mostraron gran <mark>solidaridad</mark> con los afectados.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Valor abstracto."}, {"word": "libros", "context": "Ordena los <mark>libros</mark> de la estantería.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Objetos individuales."}, {"word": "alumnado", "context": "Todo el <mark>alumnado</mark> participó en la carrera.", "cats": ["Común", "Concreto", "No contable", "Colectivo"], "explanation": "Conjunto de alumnos."}, {"word": "aceite", "context": "Echa un chorrito de <mark>aceite</mark> de oliva.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Líquido no contable."}, {"word": "dentadura", "context": "Cuida bien tu <mark>dentadura</mark>.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de dientes."}, {"word": "Teide", "context": "Subimos en teleférico al <mark>Teide</mark>.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de volcán."}, {"word": "sabiduría", "context": "Admiraban su gran <mark>sabiduría</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Cualidad intelectual abstracta."}]},
+      {"id": "sust-5", "block": "sustantivos", "title": "Desafío 5 · Sustantivos en Oraciones de Contexto", "words": [{"word": "banco", "context": "Un <mark>banco</mark> de sardinas brillaba bajo el agua.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "En este contexto significa conjunto de peces (colectivo)."}, {"word": "banco", "context": "Nos sentamos en un <mark>banco</mark> de madera del parque.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Aquí designa un único asiento (individual)."}, {"word": "pino", "context": "Aquel <mark>pino</mark> centenario mide veinte metros.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Un solo árbol (individual)."}, {"word": "pinar", "context": "Nos perdimos por el <mark>pinar</mark> detrás de la ermita.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Terreno poblado de pinos (colectivo)."}, {"word": "estrella", "context": "Miramos una <mark>estrella</mark> fugaz en agosto.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Un único astro (individual)."}, {"word": "luz", "context": "Abre la ventana para que entre la <mark>luz</mark>.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Se percibe por la vista (concreto) y no se cuenta por unidades."}, {"word": "tiempo", "context": "No tuvimos <mark>tiempo</mark> de terminar el dibujo.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Magnitud abstracta."}, {"word": "coro", "context": "El <mark>coro</mark> cantó un villancico precioso.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Agrupación de personas que cantan juntas (colectivo)."}, {"word": "equipo", "context": "Nuestro <mark>equipo</mark> ganó el torneo escolar.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de jugadores (colectivo)."}, {"word": "Atlántico", "context": "El océano <mark>Atlántico</mark> baña las costas gallegas.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de océano."}]},
+      {"id": "adj-1", "block": "adjetivos", "title": "Adjetivos · Desafío 1 (Grados)", "words": [{"word": "veloz", "context": "El guepardo es un animal muy <mark>veloz</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "El adverbio «muy» + veloz forma el superlativo absoluto."}, {"word": "altísimas", "context": "Vimos unas montañas <mark>altísimas</mark> desde el avión.", "cats": ["Superlativo Absoluto"], "explanation": "El sufijo -ísimas expresa grado superlativo absoluto."}, {"word": "más rápida que", "context": "La liebre es <mark>más rápida que</mark> la tortuga.", "cats": ["Comp. Superioridad"], "explanation": "Estructura comparativa de superioridad (más + adj. + que)."}, {"word": "tan divertido como", "context": "Este libro es <mark>tan divertido como</mark> la película.", "cats": ["Comp. Igualdad"], "explanation": "Estructura comparativa de igualdad (tan + adj. + como)."}, {"word": "menos ruidoso que", "context": "El campo es <mark>menos ruidoso que</mark> la ciudad.", "cats": ["Comp. Inferioridad"], "explanation": "Estructura comparativa de inferioridad (menos + adj. + que)."}, {"word": "el más alto de", "context": "Juan es <mark>el más alto de</mark> toda la clase.", "cats": ["Superlativo Relativo"], "explanation": "Destaca una cualidad en grado máximo dentro de un grupo (el más... de)."}, {"word": "azul", "context": "Me puse mi camiseta <mark>azul</mark> favorita.", "cats": ["Positivo"], "explanation": "Expresa la cualidad sin intensificar ni comparar: grado positivo."}, {"word": "alegres", "context": "Unos niños <mark>alegres</mark> jugaban en el patio.", "cats": ["Positivo"], "explanation": "Expresa la cualidad en grado positivo."}, {"word": "pequeñas", "context": "Guardó las llaves <mark>pequeñas</mark> en el bolsillo.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}, {"word": "dulce", "context": "Probamos una manzana <mark>dulce</mark> de postre.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}]},
+      {"id": "adj-2", "block": "adjetivos", "title": "Adjetivos · Desafío 2 (Grados e Irregulares)", "words": [{"word": "blanca", "context": "La <mark>blanca</mark> nieve cubría todos los tejados.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}, {"word": "óptimo", "context": "El equipo logró un resultado <mark>óptimo</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "Superlativo sintético irregular de «bueno» (muy bueno = óptimo)."}, {"word": "mejor", "context": "Tu redacción es <mark>mejor</mark> que la mía.", "cats": ["Comp. Superioridad"], "explanation": "Comparativo sintético irregular de «bueno» (más bueno = mejor)."}, {"word": "fiero", "context": "El <mark>fiero</mark> león rugió en la sabana.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}, {"word": "paupérrimo", "context": "Vivían en un barrio <mark>paupérrimo</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "Superlativo culto de «pobre» (muy pobre = paupérrimo)."}, {"word": "peor", "context": "Este invierno hace <mark>peor</mark> tiempo que el pasado.", "cats": ["Comp. Superioridad"], "explanation": "Comparativo sintético irregular de «malo» (más malo = peor)."}, {"word": "la menos complicada de", "context": "Esta actividad es <mark>la menos complicada de</mark> todo el tema.", "cats": ["Superlativo Relativo"], "explanation": "Superlativo relativo (la menos + adj. + de)."}, {"word": "antiquísimas", "context": "Visitamos unas ruinas <mark>antiquísimas</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "Superlativo culto de «antiguo» (muy antiguas)."}, {"word": "amable", "context": "Nos atendió una profesora muy <mark>amable</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "«Muy amable» expresa grado superlativo absoluto."}, {"word": "fría", "context": "Bebimos un vaso de agua <mark>fría</mark>.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}]},
+      {"id": "verb-1", "block": "verbos", "title": "Verbos · Desafío 1 (Tiempos Simples de Indicativo)", "words": [{"word": "cantábamos", "context": "Nosotros <mark>cantábamos</mark> en el coro del colegio.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Pretérito imperfecto"], "explanation": "Del verbo cantar (1.ª conj.), pretérito imperfecto de indicativo."}, {"word": "escribirán", "context": "Ellos <mark>escribirán</mark> una carta mañana.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Plural", "Indicativo", "Futuro simple"], "explanation": "Del verbo escribir (3.ª conj.), futuro simple de indicativo."}, {"word": "comiste", "context": "Tú <mark>comiste</mark> muy rápido ayer.", "cats": ["2.ª (-er)", "Personal", "2.ª persona", "Singular", "Indicativo", "Pretérito perfecto simple"], "explanation": "Del verbo comer (2.ª conj.), pretérito perfecto simple de indicativo."}, {"word": "leo", "context": "Yo <mark>leo</mark> veinte páginas cada noche.", "cats": ["2.ª (-er)", "Personal", "1.ª persona", "Singular", "Indicativo", "Presente"], "explanation": "Del verbo leer (2.ª conj.), presente de indicativo."}, {"word": "viajaríamos", "context": "Nosotros <mark>viajaríamos</mark> a Roma si pudiéramos.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Condicional simple"], "explanation": "Terminación -íamos sobre infinitivo viajar: condicional simple de indicativo."}, {"word": "vivís", "context": "Vosotros <mark>vivís</mark> cerca de la biblioteca.", "cats": ["3.ª (-ir)", "Personal", "2.ª persona", "Plural", "Indicativo", "Presente"], "explanation": "Del verbo vivir (3.ª conj.), 2.ª persona plural, presente de indicativo."}, {"word": "temía", "context": "Él <mark>temía</mark> llegar tarde al examen.", "cats": ["2.ª (-er)", "Personal", "3.ª persona", "Singular", "Indicativo", "Pretérito imperfecto"], "explanation": "Del verbo temer (2.ª conj.), pretérito imperfecto de indicativo."}, {"word": "partieron", "context": "Los exploradores <mark>partieron</mark> al amanecer.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Plural", "Indicativo", "Pretérito perfecto simple"], "explanation": "Del verbo partir (3.ª conj.), pretérito perfecto simple de indicativo."}, {"word": "beberás", "context": "Tú <mark>beberás</mark> agua después de correr.", "cats": ["2.ª (-er)", "Personal", "2.ª persona", "Singular", "Indicativo", "Futuro simple"], "explanation": "Del verbo beber (2.ª conj.), futuro simple de indicativo."}, {"word": "saltaría", "context": "Yo <mark>saltaría</mark> ese muro sin problema.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Singular", "Indicativo", "Condicional simple"], "explanation": "Del verbo saltar (1.ª conj.), condicional simple de indicativo."}]},
+      {"id": "verb-2", "block": "verbos", "title": "Verbos · Desafío 2 (Compuestos, Subjuntivo y Verboides)", "words": [{"word": "hayáis terminado", "context": "Ojalá <mark>hayáis terminado</mark> los deberes antes de las seis.", "cats": ["1.ª (-ar)", "Personal", "2.ª persona", "Plural", "Subjuntivo", "Pretérito perfecto compuesto"], "explanation": "«Ojalá» introduce subjuntivo; hayáis + participio = pretérito perfecto compuesto."}, {"word": "había salido", "context": "Cuando llegamos, el tren ya <mark>había salido</mark>.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Singular", "Indicativo", "Pretérito pluscuamperfecto"], "explanation": "Acción pasada anterior a otra pasada: pretérito pluscuamperfecto de indicativo."}, {"word": "escribiendo", "context": "Estaba <mark>escribiendo</mark> un cuento de aventuras.", "cats": ["3.ª (-ir)", "Gerundio", "No procede", "No procede", "No procede", "No procede"], "explanation": "El gerundio (-iendo) es una forma no personal: no tiene persona, número, tiempo ni modo."}, {"word": "resuelto", "context": "Hemos <mark>resuelto</mark> todos los problemas.", "cats": ["2.ª (-er)", "Participio", "No procede", "No procede", "No procede", "No procede"], "explanation": "Participio irregular del verbo resolver (2.ª conj.): forma no personal."}, {"word": "escuchad", "context": "¡<mark>Escuchad</mark> con atención las instrucciones!", "cats": ["1.ª (-ar)", "Personal", "2.ª persona", "Plural", "Imperativo", "Presente"], "explanation": "Orden directa a vosotros: modo imperativo."}, {"word": "habremos llegado", "context": "A las diez ya <mark>habremos llegado</mark> a casa.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Futuro compuesto"], "explanation": "Habremos + participio: futuro compuesto de indicativo."}, {"word": "correr", "context": "Me encanta <mark>correr</mark> por la playa al atardecer.", "cats": ["2.ª (-er)", "Infinitivo", "No procede", "No procede", "No procede", "No procede"], "explanation": "Infinitivo terminado en -er (2.ª conj.), forma no personal."}, {"word": "viniera", "context": "Me alegraría mucho que él <mark>viniera</mark> a la fiesta.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Singular", "Subjuntivo", "Pretérito imperfecto"], "explanation": "Del verbo venir (3.ª conj.), pretérito imperfecto de subjuntivo."}, {"word": "hemos visto", "context": "Esta tarde <mark>hemos visto</mark> un documental genial.", "cats": ["2.ª (-er)", "Personal", "1.ª persona", "Plural", "Indicativo", "Pretérito perfecto compuesto"], "explanation": "Del verbo ver (2.ª conj.), pretérito perfecto compuesto de indicativo."}, {"word": "habrían ganado", "context": "Con un gol más <mark>habrían ganado</mark> el partido.", "cats": ["1.ª (-ar)", "Personal", "3.ª persona", "Plural", "Indicativo", "Condicional compuesto"], "explanation": "Habrían + participio: condicional compuesto de indicativo."}]},
+      {"id": "verb-3", "block": "verbos", "title": "Verbos · Desafío 3 (Radar de Conjugación Completa)", "words": [{"word": "Conjugación de CANTAR", "conjugation": ["yo cantaba", "tú cantabas", "él cantaba", "nosotros cantábamos", "vosotros cantabais", "ellos cantaban"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito imperfecto"], "explanation": "Serie completa del pretérito imperfecto de indicativo (1.ª conjugación)."}, {"word": "Conjugación de TEMER", "conjugation": ["yo temeré", "tú temerás", "él temerá", "nosotros temeremos", "vosotros temeréis", "ellos temerán"], "cats": ["2.ª (-er)", "Personal", "No procede", "No procede", "Indicativo", "Futuro simple"], "explanation": "Serie completa del futuro simple de indicativo (2.ª conjugación)."}, {"word": "Conjugación de PARTIR", "conjugation": ["yo parta", "tú partas", "él parta", "nosotros partamos", "vosotros partáis", "ellos partan"], "cats": ["3.ª (-ir)", "Personal", "No procede", "No procede", "Subjuntivo", "Presente"], "explanation": "Presente de subjuntivo del verbo partir (3.ª conjugación)."}, {"word": "Conjugación de AMAR", "conjugation": ["yo amé", "tú amaste", "él amó", "nosotros amamos", "vosotros amasteis", "ellos amaron"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito perfecto simple"], "explanation": "Pretérito perfecto simple de indicativo (1.ª conjugación)."}, {"word": "Conjugación de COMER", "conjugation": ["yo comería", "tú comerías", "él comería", "nosotros comeríamos", "vosotros comeríais", "ellos comerían"], "cats": ["2.ª (-er)", "Personal", "No procede", "No procede", "Indicativo", "Condicional simple"], "explanation": "Condicional simple de indicativo (2.ª conjugación)."}, {"word": "Conjugación de VIVIR", "conjugation": ["yo he vivido", "tú has vivido", "él ha vivido", "nosotros hemos vivido", "vosotros habéis vivido", "ellos han vivido"], "cats": ["3.ª (-ir)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito perfecto compuesto"], "explanation": "Pretérito perfecto compuesto de indicativo (3.ª conjugación)."}, {"word": "Conjugación de SALTAR", "conjugation": ["yo saltara", "tú saltaras", "él saltara", "nosotros saltáramos", "vosotros saltarais", "ellos saltaran"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Subjuntivo", "Pretérito imperfecto"], "explanation": "Pretérito imperfecto de subjuntivo (1.ª conjugación)."}, {"word": "Conjugación de BEBER", "conjugation": ["yo había bebido", "tú habías bebido", "él había bebido", "nosotros habíamos bebido", "vosotros habíais bebido", "ellos habían bebido"], "cats": ["2.ª (-er)", "Personal", "No procede", "No procede", "Indicativo", "Pretérito pluscuamperfecto"], "explanation": "Pretérito pluscuamperfecto de indicativo (2.ª conjugación)."}, {"word": "Conjugación de SUBIR", "conjugation": ["yo subo", "tú subes", "él sube", "nosotros subimos", "vosotros subís", "ellos suben"], "cats": ["3.ª (-ir)", "Personal", "No procede", "No procede", "Indicativo", "Presente"], "explanation": "Presente de indicativo (3.ª conjugación)."}, {"word": "Conjugación de HABLAR", "conjugation": ["yo habré hablado", "tú habrás hablado", "él habrá hablado", "nosotros habremos hablado", "vosotros habréis hablado", "ellos habrán hablado"], "cats": ["1.ª (-ar)", "Personal", "No procede", "No procede", "Indicativo", "Futuro compuesto"], "explanation": "Futuro compuesto de indicativo (1.ª conjugación)."}]},
+      {"id": "det-1", "block": "determinantes", "title": "Determinantes · Desafío 1 (Artículos y Demostrativos)", "words": [{"word": "las", "context": "Guarda <mark>las</mark> tijeras en el cajón.", "cats": ["Artículo", "Determinado", "Femenino", "Plural"], "explanation": "Artículo determinado femenino plural."}, {"word": "un", "context": "Encontramos <mark>un</mark> gatito en el jardín.", "cats": ["Artículo", "Indeterminado", "Masculino", "Singular"], "explanation": "Artículo indeterminado masculino singular."}, {"word": "este", "context": "Pásame <mark>este</mark> cuaderno de aquí.", "cats": ["Demostrativo", "Cercanía", "Masculino", "Singular"], "explanation": "Demostrativo de cercanía."}, {"word": "aquellas", "context": "Mira <mark>aquellas</mark> nubes lejanas en el horizonte.", "cats": ["Demostrativo", "Lejanía", "Femenino", "Plural"], "explanation": "Demostrativo de lejanía, femenino plural."}, {"word": "esa", "context": "Cierra <mark>esa</mark> puerta que tienes cerca.", "cats": ["Demostrativo", "Distancia media", "Femenino", "Singular"], "explanation": "Demostrativo de distancia media."}, {"word": "al", "context": "Vamos <mark>al</mark> parque después de merendar.", "cats": ["Artículo", "Determinado", "Masculino", "Singular"], "explanation": "Artículo contracto (a + el), masculino singular."}, {"word": "unas", "context": "Compramos <mark>unas</mark> entradas para el teatro.", "cats": ["Artículo", "Indeterminado", "Femenino", "Plural"], "explanation": "Artículo indeterminado femenino plural."}, {"word": "estos", "context": "Recoge <mark>estos</mark> lápices de la mesa.", "cats": ["Demostrativo", "Cercanía", "Masculino", "Plural"], "explanation": "Demostrativo de cercanía, masculino plural."}, {"word": "del", "context": "Venimos <mark>del</mark> polideportivo municipal.", "cats": ["Artículo", "Determinado", "Masculino", "Singular"], "explanation": "Artículo contracto (de + el), masculino singular."}, {"word": "aquel", "context": "Recuerdo muy bien <mark>aquel</mark> verano en el pueblo.", "cats": ["Demostrativo", "Lejanía", "Masculino", "Singular"], "explanation": "Demostrativo de lejanía, masculino singular."}]},
+      {"id": "det-2", "block": "determinantes", "title": "Determinantes · Desafío 2 (Posesivos y Numerales)", "words": [{"word": "mi", "context": "He olvidado <mark>mi</mark> mochila en clase.", "cats": ["Posesivo", "Un poseedor", "Invariable", "Singular"], "explanation": "«Mi» sirve tanto para masculino (mi libro) como para femenino (mi mochila): género invariable."}, {"word": "nuestras", "context": "Presentamos <mark>nuestras</mark> ideas en la asamblea.", "cats": ["Posesivo", "Varios poseedores", "Femenino", "Plural"], "explanation": "Posesivo de varios poseedores, femenino plural."}, {"word": "tercer", "context": "Vivimos en el <mark>tercer</mark> piso.", "cats": ["Numeral", "Ordinal", "Masculino", "Singular"], "explanation": "Numeral ordinal (indica orden), forma apocopada de tercero."}, {"word": "veinte", "context": "Hay <mark>veinte</mark> alumnos en este grupo.", "cats": ["Numeral", "Cardinal", "Invariable", "Plural"], "explanation": "Numeral cardinal: no varía en género (veinte niños / veinte niñas)."}, {"word": "tus", "context": "Ordena <mark>tus</mark> juguetes antes de cenar.", "cats": ["Posesivo", "Un poseedor", "Invariable", "Plural"], "explanation": "Posesivo de un poseedor, invariable en género, plural."}, {"word": "vuestro", "context": "¿Cuál es <mark>vuestro</mark> equipo favorito?", "cats": ["Posesivo", "Varios poseedores", "Masculino", "Singular"], "explanation": "Posesivo de varios poseedores, masculino singular."}, {"word": "octava", "context": "Llegó en <mark>octava</mark> posición a la meta.", "cats": ["Numeral", "Ordinal", "Femenino", "Singular"], "explanation": "Numeral ordinal femenino singular."}, {"word": "dos", "context": "Necesito <mark>dos</mark> cartulinas blancas.", "cats": ["Numeral", "Cardinal", "Invariable", "Plural"], "explanation": "Numeral cardinal invariable en género."}, {"word": "su", "context": "Laura guardó <mark>su</mark> estuche.", "cats": ["Posesivo", "Un poseedor", "Invariable", "Singular"], "explanation": "Posesivo de un poseedor, invariable en género, singular."}, {"word": "primer", "context": "Hoy es el <mark>primer</mark> día de primavera.", "cats": ["Numeral", "Ordinal", "Masculino", "Singular"], "explanation": "Numeral ordinal masculino singular."}]},
+      {"id": "det-3", "block": "determinantes", "title": "Determinantes · Desafío 3 (Indefinidos e Interrog./Exclam.)", "words": [{"word": "pocos", "context": "Quedan <mark>pocos</mark> lápices de colores en la caja.", "cats": ["Indefinido", "No procede", "Masculino", "Plural"], "explanation": "Cuantificador impreciso: determinante indefinido masculino plural."}, {"word": "algún", "context": "¿Tienes <mark>algún</mark> libro de aventuras?", "cats": ["Indefinido", "No procede", "Masculino", "Singular"], "explanation": "Determinante indefinido masculino singular."}, {"word": "Qué", "context": "¡<mark>Qué</mark> sorpresa tan agradable nos has dado!", "cats": ["Interrog. / Exclam.", "No procede", "Invariable", "Invariable"], "explanation": "Determinante exclamativo con tilde diacrítica; invariable en género y número."}, {"word": "Cuántos", "context": "¿<mark>Cuántos</mark> años tiene tu hermano mayor?", "cats": ["Interrog. / Exclam.", "No procede", "Masculino", "Plural"], "explanation": "Determinante interrogativo masculino plural."}, {"word": "ninguna", "context": "No hubo <mark>ninguna</mark> duda durante el examen.", "cats": ["Indefinido", "No procede", "Femenino", "Singular"], "explanation": "Determinante indefinido femenino singular."}, {"word": "cada", "context": "Repartimos dos folios a <mark>cada</mark> alumno.", "cats": ["Indefinido", "No procede", "Invariable", "Singular"], "explanation": "Determinante indefinido distributivo, invariable en género."}, {"word": "muchas", "context": "Tengo <mark>muchas</mark> ganas de ir de excursión.", "cats": ["Indefinido", "No procede", "Femenino", "Plural"], "explanation": "Determinante indefinido femenino plural."}, {"word": "Cuánta", "context": "¡<mark>Cuánta</mark> gente ha venido al festival!", "cats": ["Interrog. / Exclam.", "No procede", "Femenino", "Singular"], "explanation": "Determinante exclamativo femenino singular."}, {"word": "bastantes", "context": "Trajeron <mark>bastantes</mark> botellas de agua.", "cats": ["Indefinido", "No procede", "Invariable", "Plural"], "explanation": "Determinante indefinido invariable en género, plural."}, {"word": "Qué", "context": "¿<mark>Qué</mark> película prefieres ver esta tarde?", "cats": ["Interrog. / Exclam.", "No procede", "Invariable", "Invariable"], "explanation": "Determinante interrogativo que acompaña al sustantivo «película»."}]},
+      {"id": "det-4", "block": "determinantes", "title": "Determinantes · Desafío 4 (Radar: ¿Determinante o Pronombre?)", "words": [{"word": "ese", "context": "Dame <mark>ese</mark> cuaderno azul, por favor.", "cats": ["Demostrativo", "Distancia media", "Masculino", "Singular"], "explanation": "Acompaña al sustantivo «cuaderno»: es determinante demostrativo."}, {"word": "ese", "context": "No quiero este bolígrafo, dame <mark>ese</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Masculino", "Singular"], "explanation": "Sustituye al sustantivo «bolígrafo» (no lleva nombre detrás): es pronombre."}, {"word": "algunos", "context": "<mark>Algunos</mark> niños prefieren jugar al baloncesto.", "cats": ["Indefinido", "No procede", "Masculino", "Plural"], "explanation": "Acompaña a «niños»: es determinante indefinido."}, {"word": "algunos", "context": "Invitamos a todos, pero solo vinieron <mark>algunos</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Masculino", "Plural"], "explanation": "Sustituye a los invitados: es pronombre indefinido."}, {"word": "tres", "context": "Compré <mark>tres</mark> entradas para el cine.", "cats": ["Numeral", "Cardinal", "Invariable", "Plural"], "explanation": "Acompaña a «entradas»: es determinante numeral cardinal."}, {"word": "tres", "context": "De todas las manzanas, me comí <mark>tres</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Invariable", "Plural"], "explanation": "Sustituye a «manzanas»: es pronombre numeral."}, {"word": "aquella", "context": "En <mark>aquella</mark> montaña hay nieve todo el año.", "cats": ["Demostrativo", "Lejanía", "Femenino", "Singular"], "explanation": "Acompaña al sustantivo «montaña»: es determinante demostrativo."}, {"word": "aquella", "context": "Esta mochila es mía y <mark>aquella</mark> es de Marta.", "cats": ["Pronombre (sustituye)", "No procede", "Femenino", "Singular"], "explanation": "Sustituye a «mochila»: es pronombre demostrativo."}, {"word": "pocas", "context": "Quedan <mark>pocas</mark> galletas en el paquete.", "cats": ["Indefinido", "No procede", "Femenino", "Plural"], "explanation": "Acompaña al sustantivo «galletas»: es determinante indefinido."}, {"word": "pocas", "context": "Había muchas sillas libres, pero ocuparon <mark>pocas</mark>.", "cats": ["Pronombre (sustituye)", "No procede", "Femenino", "Plural"], "explanation": "Sustituye a «sillas»: es pronombre indefinido."}]}
+    ];
 
     const TEAM_NAMES = ['🐒 Equipo Mono', '🦍 Equipo Gorila', '🐨 Equipo Koala', '🐿️ Equipo Ardilla'];
     const CLIMBER_ICONS = ['🐒', '🦍', '🐨', '🐿️', '🦥', '🐼', '🦝', '🐆', '🦎', '🦜'];
-    const STORAGE_KEY = 'lengua_quest_6p_full_v1';
+    const STORAGE_KEY = 'lengua_quest_6p_full_v3';
 
     let challenges = loadChallenges();
 
@@ -1402,7 +1515,7 @@
       return cfg.mapAdaptedSolution(rawCats);
     }
 
-    /* ==================== 2. REAL-TIME CLASSROOM PIN & MQTT SYNC (FROM UPLOADED WORKING VERSION) ==================== */
+    /* ==================== 2. REAL-TIME CLASSROOM PIN & MQTT SYNC ==================== */
     const ROOM_PREFIX = 'lq2026_aula_es';
     let mqttClient = null;
     let mqttConnected = false;
@@ -1503,7 +1616,6 @@
       }
     }
 
-    // Gentle periodic heartbeat while Board is open so late joiners sync immediately
     setInterval(() => {
       if (currentView === 'board') {
         broadcastBoardState();
@@ -1537,18 +1649,24 @@
       }
     }
 
-    function openAdminWithPin() {
+    async function openAdminWithPin() {
       if (sessionStorage.getItem('lq_admin_unlocked') === '1') {
         switchView('admin');
         return;
       }
-      const pwd = prompt('Introduce la contraseña del profesor (por defecto: profe2026):');
+      const pwd = await openCustomModal({
+        title: '🔒 Acceso para el Profesor',
+        message: 'Introduce la contraseña del editor (por defecto: profe2026):',
+        showInput: true,
+        placeholder: 'Contraseña...',
+        confirmText: 'Entrar'
+      });
       if (pwd === null) return;
       if (pwd.trim() === 'profe2026') {
         sessionStorage.setItem('lq_admin_unlocked', '1');
         switchView('admin');
       } else {
-        alert('Contraseña incorrecta.');
+        showToast('❌ Contraseña incorrecta.');
       }
     }
 
@@ -1613,9 +1731,15 @@
       broadcastBoardState();
     }
 
-    function kickPlayer(pid) {
+    async function kickPlayer(pid) {
       const p = boardState.players[pid];
-      if (!p || !confirm(`¿Expulsar de la sala a "${p.name}"?`)) return;
+      if (!p) return;
+      const ok = await openCustomModal({
+        title: 'Expulsar alumno',
+        message: `¿Seguro que quieres expulsar de la sala a "${p.name}"?`,
+        confirmText: 'Expulsar'
+      });
+      if (!ok) return;
       delete boardState.players[pid];
       delete boardState.roundAnswers[pid];
       renderBoardUI();
@@ -1702,6 +1826,7 @@
         SoundEngine.playJoin();
         renderBoardUI();
         broadcastBoardState();
+        showToast('🤖 8 alumnos simulados unidos a la sala');
         return;
       }
 
@@ -1786,7 +1911,7 @@
 
     function boardStartRound() {
       const ch = getCurrentChallenge();
-      if (!ch || ch.words.length === 0) { alert('Este desafío no tiene elementos.'); return; }
+      if (!ch || ch.words.length === 0) { showToast('⚠️ Este desafío no tiene elementos.'); return; }
       if (boardState.phase === 'finished') boardReset();
       boardState.phase = 'question';
       boardState.roundAnswers = {};
@@ -1833,7 +1958,6 @@
         player.hits = (player.hits || 0) + correctCount;
         player.totalAnswered = (player.totalAnswered || 0) + numRows;
 
-        // Exact 100 points per question (proportional to rows hit, 100 on full hit)
         const earned = Math.round((correctCount / numRows) * 100);
         if (correctCount === numRows) {
           player.streak = (player.streak || 0) + 1;
@@ -2304,8 +2428,8 @@
       const pin = document.getElementById('join-pin').value.trim();
       const name = document.getElementById('join-name').value.trim();
       const adapted = document.getElementById('join-adapted').checked;
-      if (!pin || pin.length < 3) { if (!isAutoRestore) alert('Escribe el PIN de 4 cifras de la pizarra.'); return; }
-      if (!name) { if (!isAutoRestore) alert('Escribe tu nombre para entrar.'); return; }
+      if (!pin || pin.length < 3) { if (!isAutoRestore) showToast('⚠️ Escribe el PIN de 4 cifras de la pizarra.'); return; }
+      if (!name) { if (!isAutoRestore) showToast('⚠️ Escribe tu nombre para entrar.'); return; }
 
       studentState.joined = true;
       studentState.boardSynced = false;
@@ -2423,7 +2547,7 @@
     function submitStudentAnswer() {
       if (studentState.submitted) return;
       if (studentState.picks.some(v => v === null)) {
-        alert('¡Completa todas las filas antes de enviar!');
+        showToast('⚠️ ¡Completa todas las filas antes de enviar!');
         return;
       }
       studentState.submitted = true;
@@ -2480,7 +2604,7 @@
       document.getElementById('stu-retry-btn').classList.add('hidden');
       const me = st.players && st.players[clientId];
       if (!me && st.players && Object.keys(st.players).length > 0 && studentState.lastPhase !== 'lobby') {
-        alert('Has sido desconectado de la sala por el profesor.');
+        showToast('Has sido desconectado de la sala por el profesor.');
         leaveStudentRoom();
         return;
       }
@@ -2717,7 +2841,7 @@
     function checkStudyAnswer() {
       if (studyState.checked) return;
       if (studyState.picks.some(v => v === null)) {
-        alert('Marca todas las filas antes de comprobar.');
+        showToast('⚠️ Marca todas las filas antes de comprobar.');
         return;
       }
       studyState.checked = true;
@@ -2805,13 +2929,14 @@
     function createNewChallenge() {
       const name = document.getElementById('new-challenge-name').value.trim();
       const block = document.getElementById('new-challenge-template').value;
-      if (!name) { alert('Escribe un título para el desafío.'); return; }
+      if (!name) { showToast('⚠️ Escribe un título para el desafío.'); return; }
       const newCh = { id: 'ch_' + Date.now(), block, title: name, words: [] };
       challenges.push(newCh);
       persistChallenges();
       document.getElementById('admin-challenge-select').value = newCh.id;
       document.getElementById('new-challenge-name').value = '';
       onAdminChallengeChanged();
+      showToast('✅ Nuevo desafío creado');
     }
 
     function duplicateCurrentChallenge() {
@@ -2824,15 +2949,25 @@
       persistChallenges();
       document.getElementById('admin-challenge-select').value = copy.id;
       onAdminChallengeChanged();
+      showToast('📋 Desafío duplicado');
     }
 
-    function deleteCurrentChallenge() {
-      if (challenges.length <= 1) return;
+    async function deleteCurrentChallenge() {
+      if (challenges.length <= 1) {
+        showToast('⚠️ Debe quedar al menos un desafío.');
+        return;
+      }
       const chId = document.getElementById('admin-challenge-select').value;
-      if (!confirm('¿Eliminar este desafío?')) return;
+      const ok = await openCustomModal({
+        title: 'Eliminar desafío',
+        message: '¿Seguro que deseas eliminar este desafío y todas sus palabras?',
+        confirmText: 'Eliminar'
+      });
+      if (!ok) return;
       challenges = challenges.filter(c => c.id !== chId);
       persistChallenges();
       onAdminChallengeChanged();
+      showToast('🗑️ Desafío eliminado');
     }
 
     function onAdminChallengeChanged() {
@@ -2865,7 +3000,7 @@
 
     function saveWordFromEditor() {
       const word = document.getElementById('ed-word').value.trim();
-      if (!word) { alert('Escribe una palabra primero.'); return; }
+      if (!word) { showToast('⚠️ Escribe una palabra primero.'); return; }
       const ch = challenges.find(c => c.id === document.getElementById('admin-challenge-select').value);
       if (!ch) return;
       const schema = getSchemaForBlock(ch.block, false);
@@ -2881,6 +3016,7 @@
       persistChallenges();
       cancelEditWord();
       renderAdminTable();
+      showToast('💾 Guardado correctamente');
     }
 
     function editWordRow(idx) {
@@ -2916,6 +3052,7 @@
       ch.words.splice(idx, 1);
       persistChallenges();
       renderAdminTable();
+      showToast('🗑️ Elemento eliminado');
     }
 
     function renderAdminTable() {
@@ -2966,18 +3103,24 @@
             challenges = imported;
             persistChallenges();
             onAdminChallengeChanged();
-            alert('¡Banco de actividades cargado!');
+            showToast('✅ ¡Banco de actividades cargado!');
           }
-        } catch (err) { alert('Error al leer el JSON.'); }
+        } catch (err) { showToast('❌ Error al leer el JSON.'); }
       };
       reader.readAsText(file);
     }
 
-    function restoreDefaultChallenges() {
-      if (!confirm('¿Restaurar los 14 desafíos iniciales de Sustantivos, Adjetivos, Verbos y Determinantes?')) return;
+    async function restoreDefaultChallenges() {
+      const ok = await openCustomModal({
+        title: 'Restaurar datos iniciales',
+        message: '¿Restaurar los 14 desafíos iniciales de Sustantivos, Adjetivos, Verbos y Determinantes?',
+        confirmText: 'Restaurar'
+      });
+      if (!ok) return;
       challenges = JSON.parse(JSON.stringify(DEFAULT_CHALLENGES));
       persistChallenges();
       onAdminChallengeChanged();
+      showToast('↩️ Datos iniciales restaurados');
     }
 
     /* ==================== 8. INITIALIZATION ==================== */
