@@ -49,7 +49,7 @@
       z-index: 999;
     }
 
-    /* Custom In-App Modal & Toast (reemplaza alert/confirm/prompt para compatibilidad total) */
+    /* Custom In-App Modal & Toast */
     .ui-modal-backdrop {
       position: fixed;
       inset: 0;
@@ -330,6 +330,28 @@
       position: relative;
       box-shadow: 0 12px 30px rgba(0,0,0,0.25);
     }
+    .sprint-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(90deg, #f59e0b, #ef4444, #f59e0b);
+      background-size: 200% auto;
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.85rem;
+      padding: 5px 16px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+      box-shadow: 0 0 18px rgba(245, 158, 11, 0.55);
+      animation: sprintGlow 1.8s linear infinite;
+    }
+    @keyframes sprintGlow {
+      0% { background-position: 0% center; transform: scale(1); }
+      50% { background-position: 100% center; transform: scale(1.04); }
+      100% { background-position: 0% center; transform: scale(1); }
+    }
+
     .context-quote {
       display: inline-block;
       background: rgba(255, 255, 255, 0.06);
@@ -458,12 +480,25 @@
       align-items: center;
       border: 2px solid transparent;
       transition: transform 0.3s, border-color 0.3s;
+      position: relative;
     }
     .tower-lane[data-team="0"] { border-color: rgba(239, 68, 68, 0.45); }
     .tower-lane[data-team="1"] { border-color: rgba(16, 185, 129, 0.45); }
     .tower-lane[data-team="2"] { border-color: rgba(59, 130, 246, 0.45); }
     .tower-lane[data-team="3"] { border-color: rgba(245, 158, 11, 0.45); }
     .tower-lane.is-leader { border-color: #fbbf24 !important; box-shadow: 0 0 24px rgba(251, 191, 36, 0.25); transform: translateY(-3px); }
+
+    .perfect-team-badge {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 900;
+      padding: 2px 9px;
+      border-radius: 999px;
+      margin-top: 4px;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.45);
+      animation: popUpFade 2.6s ease-out forwards;
+    }
 
     .tower-title { font-weight: 900; font-size: 1.02rem; display: flex; align-items: center; gap: 6px; }
     .tower-track {
@@ -520,12 +555,13 @@
     .gain-popup {
       position: absolute; top: -22px; background: #fef08a; color: #422006;
       font-weight: 900; font-size: 0.78rem; padding: 2px 8px; border-radius: 999px;
-      white-space: nowrap; animation: popUpFade 1.5s ease-out forwards;
+      white-space: nowrap; animation: popUpFade 1.8s ease-out forwards;
     }
     @keyframes popUpFade {
       0% { opacity: 0; transform: translateY(6px); }
-      25% { opacity: 1; transform: translateY(-4px); }
-      100% { opacity: 0; transform: translateY(-20px); }
+      20% { opacity: 1; transform: translateY(-4px); }
+      85% { opacity: 1; transform: translateY(-14px); }
+      100% { opacity: 0; transform: translateY(-22px); }
     }
 
     .team-score { font-size: 1.45rem; font-weight: 900; }
@@ -678,6 +714,30 @@
       color: #fca5a5 !important;
     }
 
+    .score-breakdown-box {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(96, 165, 250, 0.35);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      font-size: 0.84rem;
+    }
+    .bd-chip {
+      padding: 3px 9px;
+      border-radius: 8px;
+      font-weight: 800;
+      background: rgba(255,255,255,0.08);
+      color: #e2e8f0;
+    }
+    .bd-chip.speed { background: rgba(59, 130, 246, 0.24); color: #93c5fd; }
+    .bd-chip.streak { background: rgba(245, 158, 11, 0.25); color: #fcd34d; }
+    .bd-chip.team { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; }
+    .bd-chip.sprint { background: rgba(239, 68, 68, 0.28); color: #fca5a5; }
+
     /* ==================== ADMIN EDITOR ==================== */
     .admin-grid { display: grid; grid-template-columns: 410px 1fr; gap: 22px; align-items: start; }
     @media (max-width: 980px) { .admin-grid { grid-template-columns: 1fr; } }
@@ -734,13 +794,13 @@
 
     <!-- ==================== 1. HOME ==================== -->
     <section id="view-home">
-      <div style="text-align:center; max-width:820px; margin: 10px auto 26px;">
+      <div style="text-align:center; max-width:840px; margin: 10px auto 26px;">
         <h1 style="font-size:2.2rem; font-weight:900; margin-bottom:10px;">Plataforma de Morfología · 6.º de Primaria</h1>
         <p style="color:var(--muted); font-size:1.02rem;">
-          Escalada de torres con <strong>🐒 Mono, 🦍 Gorila, 🐨 Koala y 🐿️ Ardilla</strong>, puntuación exacta sobre <strong>100 puntos por pregunta</strong>, <strong>Nivel Adaptado (NEAE)</strong> integrado y práctica individual en casa.
+          Escalada de torres con <strong>🐒 Mono, 🦍 Gorila, 🐨 Koala y 🐿️ Ardilla</strong>, puntuación dinámica de <strong>1.000 puntos base + velocidad + rachas 🔥 + Sprint Final x2</strong>, <strong>Nivel Adaptado (NEAE)</strong> integrado y práctica individual en casa.
         </p>
         <div class="block-pills-row">
-          <span class="block-badge">📘 Sustantivos (5 desafíos)</span>
+          <span class="block-badge">📘 Sustantivos (6 desafíos)</span>
           <span class="block-badge">📙 Adjetivos (2 desafíos)</span>
           <span class="block-badge">📗 Verbos + Radar conjugación (3 desafíos)</span>
           <span class="block-badge">📕 Determinantes vs. Pronombres (4 desafíos)</span>
@@ -770,7 +830,7 @@
           <div>
             <div class="role-icon">📚</div>
             <h2>3. Practicar solo (Modo Estudio)</h2>
-            <p>Repasa los 14 desafíos desde casa sin necesidad de PIN ni cronómetro, con corrección inmediata, explicación gramatical y nota final sobre 10.</p>
+            <p>Repasa los 15 desafíos desde casa sin necesidad de PIN ni cronómetro, con corrección inmediata, explicación gramatical y nota final sobre 10.</p>
           </div>
           <button class="btn btn-purple">Practicar en casa →</button>
         </div>
@@ -856,7 +916,8 @@
       <div class="board-layout">
         <div>
           <div class="word-stage">
-            <div class="round-badge" id="board-round-info">Sala lista · Esperando alumnos</div>
+            <div id="board-sprint-banner" class="sprint-banner hidden">⚡ SPRINT FINAL · PUNTOS x2 ⚡</div>
+            <div><span class="round-badge" id="board-round-info">Sala lista · Esperando alumnos</span></div>
             <div class="active-word" id="board-word">¿Preparados?</div>
             <div class="context-quote hidden" id="board-context"></div>
             <div class="conjugation-grid-box hidden" id="board-conj-grid"></div>
@@ -877,6 +938,7 @@
           <div class="towers-grid" id="board-teams-arena">
             <div class="tower-lane" data-team="0" id="lane-0">
               <div class="tower-title" style="color:var(--team-0);">🐒 Equipo Mono</div>
+              <div class="perfect-team-badge hidden" id="perfect-badge-0">✨ ¡Escalada Perfecta!</div>
               <div class="tower-track">
                 <div class="tower-summit-line">CIMA 🏁</div>
                 <div class="tower-vine"></div>
@@ -894,6 +956,7 @@
 
             <div class="tower-lane" data-team="1" id="lane-1">
               <div class="tower-title" style="color:var(--team-1);">🦍 Equipo Gorila</div>
+              <div class="perfect-team-badge hidden" id="perfect-badge-1">✨ ¡Escalada Perfecta!</div>
               <div class="tower-track">
                 <div class="tower-summit-line">CIMA 🏁</div>
                 <div class="tower-vine"></div>
@@ -911,6 +974,7 @@
 
             <div class="tower-lane" data-team="2" id="lane-2">
               <div class="tower-title" style="color:var(--team-2);">🐨 Equipo Koala</div>
+              <div class="perfect-team-badge hidden" id="perfect-badge-2">✨ ¡Escalada Perfecta!</div>
               <div class="tower-track">
                 <div class="tower-summit-line">CIMA 🏁</div>
                 <div class="tower-vine"></div>
@@ -928,6 +992,7 @@
 
             <div class="tower-lane" data-team="3" id="lane-3">
               <div class="tower-title" style="color:var(--team-3);">🐿️ Equipo Ardilla</div>
+              <div class="perfect-team-badge hidden" id="perfect-badge-3">✨ ¡Escalada Perfecta!</div>
               <div class="tower-track">
                 <div class="tower-summit-line">CIMA 🏁</div>
                 <div class="tower-vine"></div>
@@ -948,7 +1013,7 @@
           <div class="indiv-arena hidden" id="board-indiv-arena">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
               <h3 style="font-size:1.05rem;">🏆 Escalada Individual · Podio en directo</h3>
-              <span style="font-size:0.82rem; color:var(--muted);">100 pts máx. por pregunta · 🔥 = racha</span>
+              <span style="font-size:0.82rem; color:var(--muted);">1.000 base + velocidad + 🔥 racha</span>
             </div>
             <div class="indiv-podium-grid" id="indiv-podium-grid"></div>
             <div class="indiv-roster" id="indiv-roster"></div>
@@ -972,7 +1037,7 @@
               Respuestas: <strong id="board-answer-count" style="color:#6ee7b7;">0</strong>
             </div>
             <p id="sidebar-mode-note" style="font-size:0.76rem; color:var(--muted); text-align:center; margin-top:8px;">
-              ⚖️ Puntuación exacta sobre 100 pts/pregunta (media por equipo).
+              ⚡ 1.000 pts base + hasta 400 rapidez + rachas 🔥 (media por equipo).
             </p>
           </div>
 
@@ -1070,6 +1135,7 @@
         <!-- Dynamic Question Form -->
         <div id="stu-question-box" class="hidden">
           <div style="text-align:center; margin-bottom:14px;">
+            <div id="stu-sprint-badge" class="sprint-banner hidden">⚡ SPRINT FINAL · PUNTOS x2 ⚡</div>
             <div style="display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:6px;">
               <span class="round-badge" id="stu-round-badge" style="margin:0;">Pregunta 1</span>
               <span class="timer-pill hidden" id="stu-timer-pill" style="font-size:1rem; min-width:72px; padding:3px 10px;">00:30</span>
@@ -1085,6 +1151,7 @@
             ✅ Enviar respuesta
           </button>
           <div id="stu-feedback-msg" style="text-align:center; margin-top:12px; font-weight:700;"></div>
+          <div id="stu-breakdown-box" class="score-breakdown-box hidden"></div>
           <div id="stu-explanation-box" class="explanation-box hidden" style="text-align:left;"></div>
         </div>
       </div>
@@ -1117,7 +1184,7 @@
         <div id="study-active-area">
           <div style="text-align:center; margin-bottom:14px;">
             <span class="round-badge" id="study-progress-badge">Palabra 1 de 10</span>
-            <span class="round-badge" id="study-score-badge" style="background:rgba(16,185,129,0.2); color:#6ee7b7;">Aciertos: 0</span>
+            <span class="round-badge" id="study-score-badge" style="background:rgba(16,185,129,0.2); color:#6ee7b7;">Puntos: 0</span>
             <div style="font-size:2.1rem; font-weight:900; color:#fff; margin-top:6px;" id="study-word">palabra</div>
             <div class="context-quote hidden" id="study-context" style="font-size:0.95rem;"></div>
             <div class="conjugation-grid-box hidden" id="study-conj-grid" style="font-size:0.88rem;"></div>
@@ -1229,6 +1296,10 @@
   </main>
 
   <script>
+    function fmtPts(val) {
+      return Math.round(Number(val || 0)).toLocaleString('es-ES');
+    }
+
     /* ==================== CUSTOM NON-BLOCKING DIALOGS & TOASTS ==================== */
     let toastTimer = null;
     function showToast(msg) {
@@ -1471,6 +1542,7 @@
       {"id": "sust-3", "block": "sustantivos", "title": "Desafío 3 · Sustantivos (Abstractos y Propios)", "words": [{"word": "alegría", "context": "Saltaba de <mark>alegría</mark> al ver la nota.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Sentimiento inmaterial: no se clasifica en contable ni individual/colectivo."}, {"word": "libertad", "context": "Defendemos la <mark>libertad</mark> de expresión.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Concepto abstracto."}, {"word": "miedo", "context": "Sintió <mark>miedo</mark> durante la tormenta.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Emoción abstracta."}, {"word": "honestidad", "context": "Valoramos mucho tu <mark>honestidad</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Cualidad abstracta."}, {"word": "paciencia", "context": "Hay que tener <mark>paciencia</mark> para aprender.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Virtud o cualidad no perceptible por los sentidos."}, {"word": "Pirineos", "context": "Esquiamos en los <mark>Pirineos</mark> en invierno.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de cordillera."}, {"word": "esperanza", "context": "Nunca perdió la <mark>esperanza</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Sentimiento abstracto."}, {"word": "amistad", "context": "Nuestra <mark>amistad</mark> dura desde Infantil.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Relación afectiva abstracta."}, {"word": "justicia", "context": "Todos pedían <mark>justicia</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Valor abstracto."}, {"word": "Europa", "context": "España forma parte de <mark>Europa</mark>.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de continente."}]},
       {"id": "sust-4", "block": "sustantivos", "title": "Desafío 4 · Sustantivos (Repaso Avanzado)", "words": [{"word": "vajilla", "context": "Guardamos la <mark>vajilla</mark> en el armario.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de platos, vasos y fuentes."}, {"word": "aire", "context": "Respira el <mark>aire</mark> puro de la montaña.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Aunque sea invisible, se percibe físicamente: es concreto y no contable."}, {"word": "orquesta", "context": "La <mark>orquesta</mark> afinó sus instrumentos.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de músicos."}, {"word": "solidaridad", "context": "Mostraron gran <mark>solidaridad</mark> con los afectados.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Valor abstracto."}, {"word": "libros", "context": "Ordena los <mark>libros</mark> de la estantería.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Objetos individuales."}, {"word": "alumnado", "context": "Todo el <mark>alumnado</mark> participó en la carrera.", "cats": ["Común", "Concreto", "No contable", "Colectivo"], "explanation": "Conjunto de alumnos."}, {"word": "aceite", "context": "Echa un chorrito de <mark>aceite</mark> de oliva.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Líquido no contable."}, {"word": "dentadura", "context": "Cuida bien tu <mark>dentadura</mark>.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de dientes."}, {"word": "Teide", "context": "Subimos en teleférico al <mark>Teide</mark>.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de volcán."}, {"word": "sabiduría", "context": "Admiraban su gran <mark>sabiduría</mark>.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Cualidad intelectual abstracta."}]},
       {"id": "sust-5", "block": "sustantivos", "title": "Desafío 5 · Sustantivos en Oraciones de Contexto", "words": [{"word": "banco", "context": "Un <mark>banco</mark> de sardinas brillaba bajo el agua.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "En este contexto significa conjunto de peces (colectivo)."}, {"word": "banco", "context": "Nos sentamos en un <mark>banco</mark> de madera del parque.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Aquí designa un único asiento (individual)."}, {"word": "pino", "context": "Aquel <mark>pino</mark> centenario mide veinte metros.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Un solo árbol (individual)."}, {"word": "pinar", "context": "Nos perdimos por el <mark>pinar</mark> detrás de la ermita.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Terreno poblado de pinos (colectivo)."}, {"word": "estrella", "context": "Miramos una <mark>estrella</mark> fugaz en agosto.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Un único astro (individual)."}, {"word": "luz", "context": "Abre la ventana para que entre la <mark>luz</mark>.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Se percibe por la vista (concreto) y no se cuenta por unidades."}, {"word": "tiempo", "context": "No tuvimos <mark>tiempo</mark> de terminar el dibujo.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Magnitud abstracta."}, {"word": "coro", "context": "El <mark>coro</mark> cantó un villancico precioso.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Agrupación de personas que cantan juntas (colectivo)."}, {"word": "equipo", "context": "Nuestro <mark>equipo</mark> ganó el torneo escolar.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Conjunto de jugadores (colectivo)."}, {"word": "Atlántico", "context": "El océano <mark>Atlántico</mark> baña las costas gallegas.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de océano."}]},
+      {"id": "sust-6", "block": "sustantivos", "title": "Desafío 6 · Sustantivos (Trampas y Casos Especiales)", "words": [{"word": "esperanza", "context": "La <mark>esperanza</mark> de hallar una solución nos mantuvo unidos.", "cats": ["Común", "Abstracto", "No procede", "No procede"], "explanation": "Sentimiento o estado de ánimo inmaterial; no se percibe por los sentidos."}, {"word": "cristal", "context": "El artesano moldeó el <mark>cristal</mark> incandescente con una caña.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Materia física perceptible por los sentidos (concreto), pero no divisible en unidades sin un recipiente o medida."}, {"word": "masa", "context": "Dejó reposar la <mark>masa</mark> durante dos horas antes de hornear el pan.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Mezcla física perceptible por el tacto y la vista (concreto), pero continua y no contable por unidades."}, {"word": "Aconcagua", "context": "La expedición logró coronar el <mark>Aconcagua</mark> tras diez días de ascenso.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "Nombre propio de una montaña específica (orónimo)."}, {"word": "vajilla", "context": "Sacaron la <mark>vajilla</mark> de porcelana para la cena de gala.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Trampa clásica: aunque está en singular, designa un conjunto de platos, fuentes y tazas (colectivo)."}, {"word": "eco", "context": "El <mark>eco</mark> de los truenos retumbaba entre las montañas.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Trampa habitual: aunque no se puede tocar, es un fenómeno acústico perceptible por el oído (concreto) y continuo en este uso."}, {"word": "aroma", "context": "El <mark>aroma</mark> del café recién molido inundó toda la cocina.", "cats": ["Común", "Concreto", "No contable", "No procede"], "explanation": "Trampa clásica: aunque es invisible, se percibe mediante el sentido del olfato (concreto) y no se divide en unidades."}, {"word": "trueno", "context": "Un <mark>trueno</mark> ensordecedor sacudió los cristales de la buhardilla.", "cats": ["Común", "Concreto", "Contable", "Individual"], "explanation": "Fenómeno físico perceptible por el oído (concreto) que sí puede delimitarse y contarse como suceso único."}, {"word": "flota", "context": "La <mark>flota</mark> mercante zarpó al amanecer rumbo al estrecho.", "cats": ["Común", "Concreto", "Contable", "Colectivo"], "explanation": "Sustantivo en singular que designa un conjunto de barcos (colectivo) sin recurrir a sufijos colectivos habituales."}, {"word": "Soledad", "context": "La profesora <mark>Soledad</mark> revisó todos los exámenes antes del viernes.", "cats": ["Propio", "No procede", "No procede", "No procede"], "explanation": "A diferencia del sustantivo común abstracto, aquí funciona como nombre propio de persona (antropónimo)."}]},
       {"id": "adj-1", "block": "adjetivos", "title": "Adjetivos · Desafío 1 (Grados)", "words": [{"word": "veloz", "context": "El guepardo es un animal muy <mark>veloz</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "El adverbio «muy» + veloz forma el superlativo absoluto."}, {"word": "altísimas", "context": "Vimos unas montañas <mark>altísimas</mark> desde el avión.", "cats": ["Superlativo Absoluto"], "explanation": "El sufijo -ísimas expresa grado superlativo absoluto."}, {"word": "más rápida que", "context": "La liebre es <mark>más rápida que</mark> la tortuga.", "cats": ["Comp. Superioridad"], "explanation": "Estructura comparativa de superioridad (más + adj. + que)."}, {"word": "tan divertido como", "context": "Este libro es <mark>tan divertido como</mark> la película.", "cats": ["Comp. Igualdad"], "explanation": "Estructura comparativa de igualdad (tan + adj. + como)."}, {"word": "menos ruidoso que", "context": "El campo es <mark>menos ruidoso que</mark> la ciudad.", "cats": ["Comp. Inferioridad"], "explanation": "Estructura comparativa de inferioridad (menos + adj. + que)."}, {"word": "el más alto de", "context": "Juan es <mark>el más alto de</mark> toda la clase.", "cats": ["Superlativo Relativo"], "explanation": "Destaca una cualidad en grado máximo dentro de un grupo (el más... de)."}, {"word": "azul", "context": "Me puse mi camiseta <mark>azul</mark> favorita.", "cats": ["Positivo"], "explanation": "Expresa la cualidad sin intensificar ni comparar: grado positivo."}, {"word": "alegres", "context": "Unos niños <mark>alegres</mark> jugaban en el patio.", "cats": ["Positivo"], "explanation": "Expresa la cualidad en grado positivo."}, {"word": "pequeñas", "context": "Guardó las llaves <mark>pequeñas</mark> en el bolsillo.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}, {"word": "dulce", "context": "Probamos una manzana <mark>dulce</mark> de postre.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}]},
       {"id": "adj-2", "block": "adjetivos", "title": "Adjetivos · Desafío 2 (Grados e Irregulares)", "words": [{"word": "blanca", "context": "La <mark>blanca</mark> nieve cubría todos los tejados.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}, {"word": "óptimo", "context": "El equipo logró un resultado <mark>óptimo</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "Superlativo sintético irregular de «bueno» (muy bueno = óptimo)."}, {"word": "mejor", "context": "Tu redacción es <mark>mejor</mark> que la mía.", "cats": ["Comp. Superioridad"], "explanation": "Comparativo sintético irregular de «bueno» (más bueno = mejor)."}, {"word": "fiero", "context": "El <mark>fiero</mark> león rugió en la sabana.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}, {"word": "paupérrimo", "context": "Vivían en un barrio <mark>paupérrimo</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "Superlativo culto de «pobre» (muy pobre = paupérrimo)."}, {"word": "peor", "context": "Este invierno hace <mark>peor</mark> tiempo que el pasado.", "cats": ["Comp. Superioridad"], "explanation": "Comparativo sintético irregular de «malo» (más malo = peor)."}, {"word": "la menos complicada de", "context": "Esta actividad es <mark>la menos complicada de</mark> todo el tema.", "cats": ["Superlativo Relativo"], "explanation": "Superlativo relativo (la menos + adj. + de)."}, {"word": "antiquísimas", "context": "Visitamos unas ruinas <mark>antiquísimas</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "Superlativo culto de «antiguo» (muy antiguas)."}, {"word": "amable", "context": "Nos atendió una profesora muy <mark>amable</mark>.", "cats": ["Superlativo Absoluto"], "explanation": "«Muy amable» expresa grado superlativo absoluto."}, {"word": "fría", "context": "Bebimos un vaso de agua <mark>fría</mark>.", "cats": ["Positivo"], "explanation": "Adjetivo en grado positivo."}]},
       {"id": "verb-1", "block": "verbos", "title": "Verbos · Desafío 1 (Tiempos Simples de Indicativo)", "words": [{"word": "cantábamos", "context": "Nosotros <mark>cantábamos</mark> en el coro del colegio.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Pretérito imperfecto"], "explanation": "Del verbo cantar (1.ª conj.), pretérito imperfecto de indicativo."}, {"word": "escribirán", "context": "Ellos <mark>escribirán</mark> una carta mañana.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Plural", "Indicativo", "Futuro simple"], "explanation": "Del verbo escribir (3.ª conj.), futuro simple de indicativo."}, {"word": "comiste", "context": "Tú <mark>comiste</mark> muy rápido ayer.", "cats": ["2.ª (-er)", "Personal", "2.ª persona", "Singular", "Indicativo", "Pretérito perfecto simple"], "explanation": "Del verbo comer (2.ª conj.), pretérito perfecto simple de indicativo."}, {"word": "leo", "context": "Yo <mark>leo</mark> veinte páginas cada noche.", "cats": ["2.ª (-er)", "Personal", "1.ª persona", "Singular", "Indicativo", "Presente"], "explanation": "Del verbo leer (2.ª conj.), presente de indicativo."}, {"word": "viajaríamos", "context": "Nosotros <mark>viajaríamos</mark> a Roma si pudiéramos.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Plural", "Indicativo", "Condicional simple"], "explanation": "Terminación -íamos sobre infinitivo viajar: condicional simple de indicativo."}, {"word": "vivís", "context": "Vosotros <mark>vivís</mark> cerca de la biblioteca.", "cats": ["3.ª (-ir)", "Personal", "2.ª persona", "Plural", "Indicativo", "Presente"], "explanation": "Del verbo vivir (3.ª conj.), 2.ª persona plural, presente de indicativo."}, {"word": "temía", "context": "Él <mark>temía</mark> llegar tarde al examen.", "cats": ["2.ª (-er)", "Personal", "3.ª persona", "Singular", "Indicativo", "Pretérito imperfecto"], "explanation": "Del verbo temer (2.ª conj.), pretérito imperfecto de indicativo."}, {"word": "partieron", "context": "Los exploradores <mark>partieron</mark> al amanecer.", "cats": ["3.ª (-ir)", "Personal", "3.ª persona", "Plural", "Indicativo", "Pretérito perfecto simple"], "explanation": "Del verbo partir (3.ª conj.), pretérito perfecto simple de indicativo."}, {"word": "beberás", "context": "Tú <mark>beberás</mark> agua después de correr.", "cats": ["2.ª (-er)", "Personal", "2.ª persona", "Singular", "Indicativo", "Futuro simple"], "explanation": "Del verbo beber (2.ª conj.), futuro simple de indicativo."}, {"word": "saltaría", "context": "Yo <mark>saltaría</mark> ese muro sin problema.", "cats": ["1.ª (-ar)", "Personal", "1.ª persona", "Singular", "Indicativo", "Condicional simple"], "explanation": "Del verbo saltar (1.ª conj.), condicional simple de indicativo."}]},
@@ -1493,7 +1565,20 @@
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const existingIds = new Set(parsed.map(c => c.id));
+            let merged = false;
+            DEFAULT_CHALLENGES.forEach(defCh => {
+              if (!existingIds.has(defCh.id)) {
+                parsed.push(JSON.parse(JSON.stringify(defCh)));
+                merged = true;
+              }
+            });
+            if (merged) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            }
+            return parsed;
+          }
         }
       } catch (e) {}
       return JSON.parse(JSON.stringify(DEFAULT_CHALLENGES));
@@ -1670,7 +1755,7 @@
       }
     }
 
-    /* ==================== 4. BOARD STATE & EXACT 100-POINT SCORING ==================== */
+    /* ==================== 4. BOARD STATE & DYNAMIC 1,000-POINT SCORING ==================== */
     let boardState = {
       pin: String(Math.floor(1000 + Math.random() * 9000)),
       block: 'sustantivos',
@@ -1678,11 +1763,14 @@
       gameMode: 'teams',
       teamAssignMode: 'random',
       timerDuration: 30,
+      roundStartTime: 0,
       roundEndTime: 0,
       phase: 'lobby',
       wordIndex: 0,
       players: {},
       roundAnswers: {},
+      lastRoundResults: {},
+      perfectTeams: [0, 0, 0, 0],
       prevTeamAverages: [0, 0, 0, 0],
       catStats: [],
       wordStats: {}
@@ -1751,11 +1839,11 @@
       document.getElementById('team-assign-group').classList.toggle('hidden', boardState.gameMode !== 'teams');
       const note = document.getElementById('sidebar-mode-note');
       if (boardState.gameMode === 'teams') {
-        note.textContent = '⚖️ Puntuación exacta sobre 100 pts/pregunta (media por equipo).';
+        note.textContent = '⚡ 1.000 pts base + hasta 400 rapidez + rachas 🔥 (media por equipo).';
         const counts = getTeamCounts();
         if (Math.max(...counts) - Math.min(...counts) > 1) shuffleTeamsBalanced();
       } else {
-        note.textContent = '🏆 Modo Individual (hasta 20 alumnos): 100 pts máx. por pregunta.';
+        note.textContent = '🏆 Modo Individual (hasta 20 alumnos): 1.000 base + velocidad + rachas.';
       }
       renderBoardUI();
       broadcastBoardState();
@@ -1845,7 +1933,7 @@
               return opts[Math.floor(Math.random() * opts.length)];
             });
             handleIncomingMessage({ pin: boardState.pin, type: 'PLAYER_ANSWER', data: { playerId: pid, cats } });
-          }, 180 * (idx + 1));
+          }, 350 * (idx + 1));
         });
       } else {
         boardStartRound();
@@ -1856,12 +1944,13 @@
       stopBoardTimer();
       const dur = boardState.timerDuration;
       const banner = document.getElementById('board-timer-banner');
+      boardState.roundStartTime = Date.now();
       if (!dur || dur <= 0) {
         banner.classList.add('hidden');
         boardState.roundEndTime = 0;
         return;
       }
-      boardState.roundEndTime = Date.now() + dur * 1000;
+      boardState.roundEndTime = boardState.roundStartTime + dur * 1000;
       lastTickSecond = dur + 1;
       banner.classList.remove('hidden');
       updateBoardTimerVisual();
@@ -1915,10 +2004,19 @@
       if (boardState.phase === 'finished') boardReset();
       boardState.phase = 'question';
       boardState.roundAnswers = {};
+      boardState.lastRoundResults = {};
+      boardState.perfectTeams = [0, 0, 0, 0];
       startBoardTimer();
       SoundEngine.playRoundStart();
       renderBoardUI();
       broadcastBoardState();
+    }
+
+    function getStreakBonus(streak) {
+      if (streak >= 5) return 500;
+      if (streak >= 3) return 300;
+      if (streak === 2) return 150;
+      return 0;
     }
 
     function boardReveal(fromTimeout = false) {
@@ -1927,6 +2025,11 @@
 
       const ch = getCurrentChallenge();
       const item = ch.words[boardState.wordIndex];
+      const isFinalSprint = (boardState.wordIndex === ch.words.length - 1);
+      const multiplier = isFinalSprint ? 2 : 1;
+
+      boardState.lastRoundResults = {};
+      boardState.perfectTeams = [0, 0, 0, 0];
 
       Object.entries(boardState.players).forEach(([pid, player]) => {
         if (!boardState.roundAnswers[pid]) player.streak = 0;
@@ -1958,15 +2061,64 @@
         player.hits = (player.hits || 0) + correctCount;
         player.totalAnswered = (player.totalAnswered || 0) + numRows;
 
-        const earned = Math.round((correctCount / numRows) * 100);
-        if (correctCount === numRows) {
+        const isFullHit = (correctCount === numRows);
+        let basePts = Math.round((correctCount / numRows) * 1000) * multiplier;
+        let speedBonus = 0;
+        let streakBonus = 0;
+
+        if (isFullHit) {
           player.streak = (player.streak || 0) + 1;
           player.maxStreak = Math.max(player.maxStreak || 0, player.streak);
+          streakBonus = getStreakBonus(player.streak) * multiplier;
+
+          if (boardState.timerDuration > 0 && boardState.roundStartTime > 0) {
+            const freeReadMs = 4000;
+            const hasFewerRowsNEAE = Boolean(player.adapted) && ch.block !== 'adjetivos';
+            const neaeOffsetMs = hasFewerRowsNEAE ? 1500 : 0;
+            const rawElapsed = Math.max(0, (ans.ts || Date.now()) - boardState.roundStartTime);
+            const effectiveElapsed = Math.max(0, rawElapsed - freeReadMs - neaeOffsetMs);
+            const scoringWindowMs = Math.max(1000, (boardState.timerDuration * 1000) - freeReadMs);
+            const speedRatio = Math.max(0, Math.min(1, 1 - (effectiveElapsed / scoringWindowMs)));
+            speedBonus = Math.round(speedRatio * 400) * multiplier;
+          } else {
+            speedBonus = 200 * multiplier;
+          }
         } else {
           player.streak = 0;
         }
-        player.score += earned;
+
+        const totalEarned = basePts + speedBonus + streakBonus;
+        player.score += totalEarned;
+
+        boardState.lastRoundResults[pid] = {
+          isFullHit,
+          basePts,
+          speedBonus,
+          streakBonus,
+          teamBonus: 0,
+          totalEarned,
+          isFinalSprint,
+          streak: player.streak
+        };
       });
+
+      // Bonus colectivo: Escalada Perfecta (+200 pts / +400 en Sprint Final) si todo el equipo logra pleno
+      if (boardState.gameMode === 'teams') {
+        for (let t = 0; t < 4; t++) {
+          const teamPids = Object.entries(boardState.players)
+            .filter(([, p]) => p.team === t)
+            .map(([pid]) => pid);
+          if (teamPids.length > 0 && teamPids.every(pid => boardState.lastRoundResults[pid] && boardState.lastRoundResults[pid].isFullHit)) {
+            const teamBonus = 200 * multiplier;
+            boardState.perfectTeams[t] = teamBonus;
+            teamPids.forEach(pid => {
+              boardState.players[pid].score += teamBonus;
+              boardState.lastRoundResults[pid].teamBonus = teamBonus;
+              boardState.lastRoundResults[pid].totalEarned += teamBonus;
+            });
+          }
+        }
+      }
 
       boardState.phase = 'reveal';
       if (!fromTimeout) SoundEngine.playRevealPoints();
@@ -1981,6 +2133,8 @@
         boardState.wordIndex += 1;
         boardState.phase = 'question';
         boardState.roundAnswers = {};
+        boardState.lastRoundResults = {};
+        boardState.perfectTeams = [0, 0, 0, 0];
         startBoardTimer();
         SoundEngine.playRoundStart();
       } else {
@@ -1998,6 +2152,9 @@
       boardState.phase = 'lobby';
       boardState.wordIndex = 0;
       boardState.roundAnswers = {};
+      boardState.lastRoundResults = {};
+      boardState.perfectTeams = [0, 0, 0, 0];
+      boardState.roundStartTime = 0;
       boardState.roundEndTime = 0;
       boardState.prevTeamAverages = [0, 0, 0, 0];
       resetBoardStatsForChallenge();
@@ -2013,6 +2170,7 @@
       const item = ch.words[boardState.wordIndex] || null;
       const counts = getTeamCounts();
       const minCount = Math.min(...counts);
+      const isFinalSprint = (boardState.wordIndex === ch.words.length - 1);
 
       sendClassroomMsg(boardState.pin, 'BOARD_STATE', {
         phase: boardState.phase,
@@ -2024,12 +2182,14 @@
         roundEndTime: boardState.roundEndTime,
         wordIndex: boardState.wordIndex,
         totalWords: ch.words.length,
+        isFinalSprint,
         word: item ? item.word : '',
         context: item ? (item.context || '') : '',
         conjugation: item ? (item.conjugation || null) : null,
         rawSolution: (boardState.phase === 'reveal' || boardState.phase === 'finished') && item ? item.cats : null,
         explanation: (boardState.phase === 'reveal' || boardState.phase === 'finished') && item ? (item.explanation || '') : '',
         players: boardState.players,
+        lastRoundResults: boardState.phase === 'reveal' ? boardState.lastRoundResults : {},
         teamCounts: counts,
         maxAllowedPerTeam: minCount + 1
       });
@@ -2040,8 +2200,10 @@
       const ch = getCurrentChallenge();
       const schema = getSchemaForBlock(ch.block, false);
       const item = ch.words[boardState.wordIndex];
+      const isFinalSprint = (boardState.wordIndex === ch.words.length - 1) && (boardState.phase === 'question' || boardState.phase === 'reveal');
 
       document.getElementById('qrcode').classList.toggle('compact', boardState.phase !== 'lobby');
+      document.getElementById('board-sprint-banner').classList.toggle('hidden', !isFinalSprint);
 
       const isTeams = boardState.gameMode === 'teams';
       document.getElementById('board-teams-arena').classList.toggle('hidden', !isTeams);
@@ -2102,7 +2264,7 @@
       } else if (boardState.phase === 'finished') {
         roundInfo.textContent = '🏁 ¡Desafío completado!';
         wordEl.textContent = '¡Podio Final!';
-        subInfo.textContent = 'Puntuación final sobre ' + (ch.words.length * 100) + ' puntos.';
+        subInfo.textContent = 'Clasificación definitiva de la partida.';
         chipsEl.classList.add('hidden');
         renderFinalPodium();
         renderFinalPedagogicalReport();
@@ -2114,10 +2276,10 @@
         Object.entries(boardState.players).forEach(([pid, p]) => {
           teamRawSums[p.team] += p.score;
           const doneMark = (boardState.phase === 'question' && boardState.roundAnswers[pid]) ? '✅' : '';
-          const streakMark = (p.streak >= 3) ? `🔥x${p.streak}` : '';
+          const streakMark = (p.streak >= 2) ? `🔥x${p.streak}` : '';
           teamMembers[p.team].push(`
             <span class="member-pill">
-              ${p.name}${doneMark}${streakMark} (${p.score})
+              ${p.name}${doneMark}${streakMark} (${fmtPts(p.score)})
               <button class="kick-btn" onclick="kickPlayer('${pid}')" title="Eliminar">×</button>
             </span>
           `);
@@ -2130,7 +2292,7 @@
         }
 
         const topScore = Math.max(...teamAverages);
-        const challengeMax = Math.max(100, ch.words.length * 100);
+        const challengeMax = Math.max(1500, ch.words.length * 1450);
 
         for (let t = 0; t < 4; t++) {
           const count = teamMembers[t].length;
@@ -2143,6 +2305,14 @@
           const climberWrap = document.getElementById(`climber-wrap-${t}`);
           const laneEl = document.getElementById(`lane-${t}`);
           const crownEl = document.getElementById(`crown-${t}`);
+          const perfBadge = document.getElementById(`perfect-badge-${t}`);
+
+          if (boardState.phase === 'reveal' && boardState.perfectTeams[t] > 0) {
+            perfBadge.textContent = `✨ ¡Escalada Perfecta! +${fmtPts(boardState.perfectTeams[t])}`;
+            perfBadge.classList.remove('hidden');
+          } else {
+            perfBadge.classList.add('hidden');
+          }
 
           let blocksHtml = '';
           for (let f = 0; f < numFloors; f++) {
@@ -2160,12 +2330,12 @@
             if (oldPop) oldPop.remove();
             const pop = document.createElement('div');
             pop.className = 'gain-popup';
-            pop.textContent = `+${delta} pts`;
+            pop.textContent = `+${fmtPts(delta)} pts`;
             climberWrap.appendChild(pop);
-            setTimeout(() => pop.remove(), 1550);
+            setTimeout(() => pop.remove(), 1850);
           }
 
-          document.getElementById(`score-${t}`).textContent = `${avg} pts`;
+          document.getElementById(`score-${t}`).textContent = `${fmtPts(avg)} pts`;
           document.getElementById(`avg-note-${t}`).textContent = `Media · ${count} jug.`;
           document.getElementById(`members-${t}`).innerHTML = count ? teamMembers[t].join('') : '<span style="color:var(--muted); font-size:0.78rem;">Sin jugadores</span>';
         }
@@ -2203,12 +2373,12 @@
       }
 
       const ch = getCurrentChallenge();
-      const maxScore = Math.max(100, ch.words.length * 100);
+      const maxScore = Math.max(1500, ch.words.length * 1450);
       const medals = ['🥇', '🥈', '🥉', '#4', '#5', '#6'];
 
       podiumEl.innerHTML = sorted.slice(0, 6).map((p, idx) => {
         const pct = Math.min(82, Math.max(6, Math.round((p.score / maxScore) * 78)));
-        const streakTag = p.streak >= 3 ? ` 🔥x${p.streak}` : '';
+        const streakTag = p.streak >= 2 ? ` 🔥x${p.streak}` : '';
         return `
           <div class="indiv-tower-card ${idx === 0 ? 'rank-1' : ''}">
             <div style="font-weight:900; font-size:0.86rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${medals[idx]} ${p.name}${streakTag}</div>
@@ -2216,19 +2386,19 @@
               <div class="indiv-fill" style="height:${pct}%;"></div>
               <div class="indiv-runner" style="bottom:${pct}%;">${p.icon || '🐒'}</div>
             </div>
-            <div style="font-weight:900; color:#93c5fd; font-size:1.05rem;">${p.score} pts</div>
+            <div style="font-weight:900; color:#93c5fd; font-size:1.05rem;">${fmtPts(p.score)} pts</div>
           </div>
         `;
       }).join('');
 
       rosterEl.innerHTML = sorted.map((p, idx) => {
         const hasAnswered = boardState.phase === 'question' && Boolean(boardState.roundAnswers[p.pid]);
-        const streakTag = p.streak >= 3 ? ` 🔥x${p.streak}` : '';
+        const streakTag = p.streak >= 2 ? ` 🔥x${p.streak}` : '';
         return `
           <div class="roster-chip ${hasAnswered ? 'answered' : ''}">
             <span><strong>${idx + 1}.</strong> ${p.icon || '🐒'} ${p.name}${streakTag} ${hasAnswered ? '✅' : ''}</span>
             <span style="display:inline-flex; align-items:center; gap:6px;">
-              <strong style="color:#6ee7b7;">${p.score}</strong>
+              <strong style="color:#6ee7b7;">${fmtPts(p.score)}</strong>
               <button class="kick-btn" onclick="kickPlayer('${p.pid}')" title="Eliminar">×</button>
             </span>
           </div>
@@ -2249,7 +2419,7 @@
       } else {
         winners = Object.values(boardState.players).map(p => ({
           title: p.name, icon: p.icon || '🐒', score: p.score,
-          sub: p.maxStreak >= 3 ? `Racha máx. 🔥x${p.maxStreak}` : 'Individual'
+          sub: p.maxStreak >= 2 ? `Racha máx. 🔥x${p.maxStreak}` : 'Individual'
         })).sort((a, b) => b.score - a.score).slice(0, 3);
       }
       if (winners.length === 0) return;
@@ -2261,7 +2431,7 @@
             <div style="font-size:2.3rem;">${w.icon}</div>
             <div style="font-size:0.78rem; font-weight:800; color:#fcd34d;">${medals[idx]}</div>
             <div style="font-weight:900;">${w.title}</div>
-            <div style="font-weight:900; font-size:1.15rem; color:#6ee7b7;">${w.score} pts</div>
+            <div style="font-weight:900; font-size:1.15rem; color:#6ee7b7;">${fmtPts(w.score)} pts</div>
             <div style="font-size:0.74rem; color:var(--muted);">${w.sub}</div>
           </div>
         `).join('')}</div>
@@ -2287,11 +2457,11 @@
       const sorted = Object.values(boardState.players).sort((a, b) => b.score - a.score);
       if (sorted.length === 0) return;
       const ch = getCurrentChallenge();
-      const lines = ['\uFEFFPuesto;Alumno;Equipo;Puntuacion;Aciertos;Total_Filas;Porcentaje;Desafio'];
+      const lines = ['\uFEFFPuesto;Alumno;Equipo;Puntuacion;Racha_Max;Aciertos;Total_Filas;Porcentaje;Desafio'];
       sorted.forEach((p, idx) => {
         const pct = p.totalAnswered > 0 ? Math.round((p.hits / p.totalAnswered) * 100) : 0;
         const teamLabel = boardState.gameMode === 'teams' ? TEAM_NAMES[p.team] : 'Individual';
-        lines.push(`${idx + 1};"${p.name}";"${teamLabel}";${p.score};${p.hits || 0};${p.totalAnswered || 0};${pct}%;"${ch.title}"`);
+        lines.push(`${idx + 1};"${p.name}";"${teamLabel}";${p.score};${p.maxStreak || 0};${p.hits || 0};${p.totalAnswered || 0};${pct}%;"${ch.title}"`);
       });
       const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -2611,13 +2781,14 @@
 
       if (me) {
         studentState.team = me.team;
-        document.getElementById('stu-points-label').textContent = `Mis puntos: ${me.score}`;
+        document.getElementById('stu-points-label').textContent = `Mis puntos: ${fmtPts(me.score)}`;
         document.getElementById('stu-badge-team').textContent =
           studentState.gameMode === 'individual' ? `${me.icon || '🐒'} Individual` : TEAM_NAMES[me.team];
 
         const streakEl = document.getElementById('stu-streak-badge');
-        if (me.streak >= 3) {
-          streakEl.textContent = `🔥 Racha x${me.streak}`;
+        if (me.streak >= 2) {
+          const streakLabel = me.streak >= 5 ? `🔥 Imparable x${me.streak}` : (me.streak >= 3 ? `🔥 En llamas x${me.streak}` : `🔥 Racha x2`);
+          streakEl.textContent = streakLabel;
           streakEl.classList.remove('hidden');
         } else {
           streakEl.classList.add('hidden');
@@ -2626,6 +2797,8 @@
 
       const waitBox = document.getElementById('stu-wait-box');
       const qBox = document.getElementById('stu-question-box');
+      const sprintBadge = document.getElementById('stu-sprint-badge');
+      sprintBadge.classList.toggle('hidden', !st.isFinalSprint);
 
       if (st.phase === 'lobby') {
         if (studentTimerInterval) clearInterval(studentTimerInterval);
@@ -2656,6 +2829,7 @@
           document.getElementById('stu-submit-btn').disabled = false;
           document.getElementById('stu-submit-btn').textContent = '✅ Enviar respuesta';
           document.getElementById('stu-feedback-msg').textContent = '';
+          document.getElementById('stu-breakdown-box').classList.add('hidden');
           document.getElementById('stu-explanation-box').classList.add('hidden');
           SoundEngine.playRoundStart();
         }
@@ -2700,10 +2874,31 @@
           SoundEngine.playStudentResult(hits === numRows, hits / numRows);
         }
 
-        const earned = studentState.submitted ? Math.round((hits / numRows) * 100) : 0;
-        document.getElementById('stu-feedback-msg').innerHTML = !studentState.submitted
-          ? '⏱️ No enviaste a tiempo esta ronda (0 pts).'
-          : `Has acertado <strong>${hits} de ${numRows}</strong> filas (+${earned} pts).`;
+        const res = st.lastRoundResults && st.lastRoundResults[clientId];
+        const bdBox = document.getElementById('stu-breakdown-box');
+
+        if (!studentState.submitted) {
+          document.getElementById('stu-feedback-msg').innerHTML = '⏱️ No enviaste a tiempo esta ronda (0 pts).';
+          bdBox.classList.add('hidden');
+        } else if (res) {
+          document.getElementById('stu-feedback-msg').innerHTML =
+            res.isFullHit
+              ? `🎉 ¡Pleno perfecto (${hits}/${numRows})! <strong>+${fmtPts(res.totalEarned)} pts</strong>`
+              : `Has acertado <strong>${hits} de ${numRows}</strong> filas (<strong>+${fmtPts(res.totalEarned)} pts</strong>).`;
+
+          const chips = [`<span class="bd-chip">🎯 Precisión: +${fmtPts(res.basePts)}</span>`];
+          if (res.speedBonus > 0) chips.push(`<span class="bd-chip speed">⚡ Rapidez: +${fmtPts(res.speedBonus)}</span>`);
+          if (res.streakBonus > 0) chips.push(`<span class="bd-chip streak">🔥 Racha x${res.streak}: +${fmtPts(res.streakBonus)}</span>`);
+          if (res.teamBonus > 0) chips.push(`<span class="bd-chip team">✨ Escalada Perfecta: +${fmtPts(res.teamBonus)}</span>`);
+          if (res.isFinalSprint) chips.push(`<span class="bd-chip sprint">⚡ Sprint x2 aplicado</span>`);
+          bdBox.innerHTML = chips.join('');
+          bdBox.classList.remove('hidden');
+        } else {
+          const fallbackEarned = Math.round((hits / numRows) * 1000) * (st.isFinalSprint ? 2 : 1);
+          document.getElementById('stu-feedback-msg').innerHTML =
+            `Has acertado <strong>${hits} de ${numRows}</strong> filas (+${fmtPts(fallbackEarned)} pts).`;
+          bdBox.classList.add('hidden');
+        }
 
         const explEl = document.getElementById('stu-explanation-box');
         if (st.explanation) {
@@ -2809,7 +3004,7 @@
       studyState.checked = false;
 
       document.getElementById('study-progress-badge').textContent = `Actividad ${studyState.index + 1} de ${ch.words.length}`;
-      document.getElementById('study-score-badge').textContent = `Puntos: ${studyState.totalPoints} / ${ch.words.length * 100}`;
+      document.getElementById('study-score-badge').textContent = `Puntos: ${fmtPts(studyState.totalPoints)} / ${fmtPts(ch.words.length * 1000)}`;
       document.getElementById('study-word').textContent = item.word;
 
       const ctxEl = document.getElementById('study-context');
@@ -2864,16 +3059,16 @@
         });
       });
 
-      const earned = Math.round((hits / numRows) * 100);
+      const earned = Math.round((hits / numRows) * 1000);
       studyState.totalPoints += earned;
       if (hits < numRows) studyState.mistakes.push(item.word);
 
       SoundEngine.playStudentResult(hits === numRows, hits / numRows);
-      document.getElementById('study-score-badge').textContent = `Puntos: ${studyState.totalPoints} / ${ch.words.length * 100}`;
+      document.getElementById('study-score-badge').textContent = `Puntos: ${fmtPts(studyState.totalPoints)} / ${fmtPts(ch.words.length * 1000)}`;
       document.getElementById('study-feedback').innerHTML =
         hits === numRows
-          ? '🎉 ¡Pleno perfecto! (+100 pts)'
-          : `Has acertado <strong>${hits} de ${numRows}</strong> filas (+${earned} pts).`;
+          ? '🎉 ¡Pleno perfecto! (+1.000 pts)'
+          : `Has acertado <strong>${hits} de ${numRows}</strong> filas (+${fmtPts(earned)} pts).`;
 
       const explEl = document.getElementById('study-explanation');
       if (item.explanation) {
@@ -2895,13 +3090,13 @@
       } else {
         document.getElementById('study-active-area').classList.add('hidden');
         const sumEl = document.getElementById('study-summary-area');
-        const grade = ((studyState.totalPoints / (ch.words.length * 100)) * 10).toFixed(1);
+        const grade = ((studyState.totalPoints / (ch.words.length * 1000)) * 10).toFixed(1);
         SoundEngine.playVictoryFanfare();
         sumEl.innerHTML = `
           <div style="font-size:3rem; margin-bottom:8px;">🎓</div>
           <h2 style="font-size:1.6rem; font-weight:900;">¡Repaso completado!</h2>
           <div style="font-size:2.4rem; font-weight:900; color:#6ee7b7; margin:12px 0;">Nota: ${grade} / 10</div>
-          <p style="color:var(--muted); margin-bottom:16px;">Puntuación total: ${studyState.totalPoints} de ${ch.words.length * 100} puntos.</p>
+          <p style="color:var(--muted); margin-bottom:16px;">Puntuación total: ${fmtPts(studyState.totalPoints)} de ${fmtPts(ch.words.length * 1000)} puntos.</p>
           ${studyState.mistakes.length > 0
             ? `<div class="preview-banner" style="text-align:left;"><strong>📌 Palabras para repasar:</strong> ${studyState.mistakes.join(', ')}</div>`
             : `<div class="preview-banner">🌟 ¡No has tenido ningún fallo en todo el desafío!</div>`}
@@ -3113,7 +3308,7 @@
     async function restoreDefaultChallenges() {
       const ok = await openCustomModal({
         title: 'Restaurar datos iniciales',
-        message: '¿Restaurar los 14 desafíos iniciales de Sustantivos, Adjetivos, Verbos y Determinantes?',
+        message: '¿Restaurar los 15 desafíos iniciales de Sustantivos, Adjetivos, Verbos y Determinantes?',
         confirmText: 'Restaurar'
       });
       if (!ok) return;
